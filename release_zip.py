@@ -16,7 +16,7 @@ from pathlib import Path
 
 
 
-exclude_patternslist = ['.git','.github','__pycache__','notes','i18n','release','*.pyc','temporary','plugin_upload.py','trash','paper_publication','extra_tests']
+exclude_patternslist = ['.git','.github','__pycache__','notes','i18n','release','*.pyc','temporary','plugin_upload.py','trash','paper_publication','extra_tests','model3_xml_files']
 
 
 # print(filelist)
@@ -33,8 +33,8 @@ release_folderpath = 'release'
 outpath = os.path.join(release_folderpath,'osm2topomap.zip')
 
 
-
-destfolderpath = 'release/temp_files'
+temp_files_path = 'release/temp_files'
+destfolderpath = 'release/temp_files/osm2topomap'
 
 if os.path.exists(release_folderpath):
     shutil.rmtree(release_folderpath)
@@ -48,11 +48,11 @@ if os.path.exists(outpath):
 
 
 
-shutil.make_archive(outpath.replace('.zip',''),'zip',destfolderpath)
+shutil.make_archive(outpath.replace('.zip',''),'zip',temp_files_path)
 
 
-if os.path.exists(destfolderpath):
-    shutil.rmtree(destfolderpath)
+if os.path.exists(temp_files_path):
+    shutil.rmtree(temp_files_path)
 
 print(outpath)
 print(release_folderpath)
