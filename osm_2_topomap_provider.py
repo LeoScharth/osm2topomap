@@ -31,7 +31,19 @@ __copyright__ = '(C) 2023 by Leonardo Scharth; Kauê Vestena; Silvana Camboim'
 __revision__ = '$Format:%H$'
 
 from qgis.core import QgsProcessingProvider
-from .osm_2_topomap_algorithm import Osm2TopoMapAlgorithm
+# from .osm_2_topomap_algorithm import Osm2TopoMapAlgorithm
+from .o2m_algorithms.fluxo_1_grupos_transformadores_p import Transformadores
+from .o2m_algorithms.fluxo_2_campo_quadra_p import Quadra
+from .o2m_algorithms.fluxo_3_edif_saude_p import Saude
+from .o2m_algorithms.fluxo_4_posto_pol_rod_p import Policia_rodoviaria
+from .o2m_algorithms.fluxo_5_6_7_relevo_pico_morro_praia_p_a import RelevoFisiograficoNatural 
+from .o2m_algorithms.fluxo_8_heliponto_p import Heliponto
+from .o2m_algorithms.fluxo_9_posto_gasolina_p import PostoDeGasolina
+from .o2m_algorithms.fluxo_10_aerogerador_p import Aerogerador
+from .o2m_algorithms.fluxo_11_edif_policia_p import Policia
+from .o2m_algorithms.fluxo_12_praca_a import Praca
+from .o2m_algorithms.fluxo_13_14_via_deslocamento_l import ViaDeslocamento
+from .o2m_algorithms.fluxo_15_trecho_energia_l import PowerLine
 
 
 class Osm2TopoMapProvider(QgsProcessingProvider):
@@ -53,7 +65,20 @@ class Osm2TopoMapProvider(QgsProcessingProvider):
         """
         Loads all algorithms belonging to this provider.
         """
-        self.addAlgorithm(Osm2TopoMapAlgorithm())
+        # self.addAlgorithm(Osm2TopoMapAlgorithm())
+
+        self.addAlgorithm(Transformadores())
+        self.addAlgorithm(Quadra())
+        self.addAlgorithm(Saude())
+        self.addAlgorithm(Policia_rodoviaria())
+        self.addAlgorithm(RelevoFisiograficoNatural())
+        self.addAlgorithm(Heliponto())
+        self.addAlgorithm(PostoDeGasolina())
+        self.addAlgorithm(Aerogerador())
+        self.addAlgorithm(Policia())
+        self.addAlgorithm(Praca())
+        self.addAlgorithm(ViaDeslocamento())
+        self.addAlgorithm(PowerLine())
         # add additional algorithms here
         # self.addAlgorithm(MyOtherAlgorithm())
 

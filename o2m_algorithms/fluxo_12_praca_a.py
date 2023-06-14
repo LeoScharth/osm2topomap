@@ -15,14 +15,14 @@ from qgis.core import QgsExpression
 import processing
 
 
-class Praa(QgsProcessingAlgorithm):
+class Praca(QgsProcessingAlgorithm):
 
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterString('EntrecomaChaveOSM', 'Entre com a Chave OSM', multiLine=False, defaultValue='leisure'))
         self.addParameter(QgsProcessingParameterString('EntrecomoValorOSM', 'Entre com o Valor OSM', multiLine=False, defaultValue='park'))
         self.addParameter(QgsProcessingParameterVectorLayer('definaareadeinteresse2', 'Defina a área de interesse', types=[QgsProcessing.TypeVectorPolygon], defaultValue=None))
         self.addParameter(QgsProcessingParameterFeatureSink('Geom', 'geom', type=QgsProcessing.TypeVectorAnyGeometry, createByDefault=True, supportsAppend=True, defaultValue=None))
-        self.addParameter(QgsProcessingParameterFeatureSink('Praa_a', 'praça_A', type=QgsProcessing.TypeVectorAnyGeometry, createByDefault=True, supportsAppend=True, defaultValue=None))
+        self.addParameter(QgsProcessingParameterFeatureSink('Praca_a', 'praça_A', type=QgsProcessing.TypeVectorAnyGeometry, createByDefault=True, supportsAppend=True, defaultValue=None))
 
     def processAlgorithm(self, parameters, context, model_feedback):
         # Use a multi-step feedback, so that individual child algorithm progress reports are adjusted for the
@@ -118,10 +118,10 @@ class Praa(QgsProcessingAlgorithm):
         alg_params = {
             'FIELDS_MAPPING': [{'expression': '\"name\"','length': 255,'name': 'nome','precision': 0,'type': 10},{'expression': '\'Sim\'','length': 5,'name': 'geometriaAproximada','precision': 0,'type': 10},{'expression': 'if(\"tourism\" IS NOT NULL, \'Sim\', \'Não\')','length': 5,'name': 'turistica','precision': 0,'type': 10},{'expression': 'if(\"osm_id\" IS NULL,\"osm_way_id\",\"osm_id\")','length': 10,'name': 'osm_id','precision': 0,'type': 10},{'expression': '\"name\"','length': 255,'name': 'nome_no_osm','precision': 0,'type': 10},{'expression': '\'Sim\'','length': 5,'name': 'geometria_osm','precision': 0,'type': 10},{'expression': 'if(\"name\" IS NOT NULL,\'Sim\',\'Não\')','length': 5,'name': 'nome_osm','precision': 0,'type': 10}],
             'INPUT': outputs['ExtrairPorExpresso']['OUTPUT'],
-            'OUTPUT': parameters['Praa_a']
+            'OUTPUT': parameters['Praca_a']
         }
         outputs['EditarCampos'] = processing.run('qgis:refactorfields', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-        results['Praa_a'] = outputs['EditarCampos']['OUTPUT']
+        results['Praca_a'] = outputs['EditarCampos']['OUTPUT']
         return results
 
     def name(self):
@@ -137,4 +137,4 @@ class Praa(QgsProcessingAlgorithm):
         return 'IBGE'
 
     def createInstance(self):
-        return Praa()
+        return Praca()
