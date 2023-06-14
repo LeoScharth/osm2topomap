@@ -16,7 +16,7 @@ from pathlib import Path
 
 
 
-exclude_patternslist = ['.git','.github','__pycache__','notes','i18n','release','*.pyc','temporary','plugin_upload.py','trash','paper_publication','extra_tests','model3_xml_files']
+exclude_patternslist = ['.git','.github','__pycache__','notes','i18n','release','*.pyc','temporary','plugin_upload.py','trash','paper_publication','extra_tests','model3_xml_files','sample_data']
 
 
 # print(filelist)
