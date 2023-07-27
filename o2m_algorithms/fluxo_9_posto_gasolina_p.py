@@ -2,7 +2,7 @@
 Model exported as python.
 Name : Posto de Gasolina
 Group : IBGE
-With QGIS : 31605
+With QGIS : 33200
 """
 
 from qgis.core import QgsProcessing
@@ -32,23 +32,6 @@ class PostoDeGasolina(QgsProcessingAlgorithm):
         results = {}
         outputs = {}
 
-        # Buffer (2)
-        alg_params = {
-            'DISSOLVE': False,
-            'DISTANCE': 0.001129,
-            'END_CAP_STYLE': 0,
-            'INPUT': parameters['entrecomacamadaderefernciadotipopontoasertestada'],
-            'JOIN_STYLE': 0,
-            'MITER_LIMIT': 2,
-            'SEGMENTS': 16,
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['Buffer2'] = processing.run('native:buffer', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(1)
-        if feedback.isCanceled():
-            return {}
-
         # Consulta por TAGs do OSM
         alg_params = {
             'EXTENT': parameters['definaareadeinteresse2'],
@@ -59,12 +42,32 @@ class PostoDeGasolina(QgsProcessingAlgorithm):
         }
         outputs['ConsultaPorTagsDoOsm'] = processing.run('quickosm:buildqueryextent', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
+        feedback.setCurrentStep(1)
+        if feedback.isCanceled():
+            return {}
+
+        # Buffer (2)
+        alg_params = {
+            'DISSOLVE': False,
+            'DISTANCE': 0.001129,
+            'END_CAP_STYLE': 0,  # Round
+            'INPUT': parameters['entrecomacamadaderefernciadotipopontoasertestada'],
+            'JOIN_STYLE': 0,  # Round
+            'MITER_LIMIT': 2,
+            'SEGMENTS': 16,
+            'SEPARATE_DISJOINT': False,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['Buffer2'] = processing.run('native:buffer', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
         feedback.setCurrentStep(2)
         if feedback.isCanceled():
             return {}
 
         # Baixar dados 
         alg_params = {
+            'DATA': '',
+            'METHOD': 0,  # GET
             'URL': outputs['ConsultaPorTagsDoOsm']['OUTPUT_URL'],
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
@@ -74,37 +77,25 @@ class PostoDeGasolina(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
-        # Poligonos
+        # Pontos
         alg_params = {
             'INPUT_1': outputs['BaixarDados']['OUTPUT'],
-            'INPUT_2': QgsExpression('\'|layername=multipolygons\'').evaluate()
+            'INPUT_2': QgsExpression("'|layername=points'").evaluate()
         }
-        outputs['Poligonos'] = processing.run('native:stringconcatenation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['Pontos'] = processing.run('native:stringconcatenation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(4)
         if feedback.isCanceled():
             return {}
 
-        # Recortar
-        alg_params = {
-            'INPUT': outputs['Poligonos']['CONCATENATION'],
-            'OVERLAY': parameters['definaareadeinteresse2'],
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['Recortar'] = processing.run('native:clip', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(5)
-        if feedback.isCanceled():
-            return {}
-
-        # Pontos
+        # Poligonos
         alg_params = {
             'INPUT_1': outputs['BaixarDados']['OUTPUT'],
-            'INPUT_2': QgsExpression('\'|layername=points\'').evaluate()
+            'INPUT_2': QgsExpression("'|layername=multipolygons'").evaluate()
         }
-        outputs['Pontos'] = processing.run('native:stringconcatenation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['Poligonos'] = processing.run('native:stringconcatenation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(6)
+        feedback.setCurrentStep(5)
         if feedback.isCanceled():
             return {}
 
@@ -116,20 +107,7 @@ class PostoDeGasolina(QgsProcessingAlgorithm):
         }
         outputs['Recortar2'] = processing.run('native:clip', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(7)
-        if feedback.isCanceled():
-            return {}
-
-        # Extrair por localização (poly)
-        alg_params = {
-            'INPUT': outputs['Recortar']['OUTPUT'],
-            'INTERSECT': parameters['reaedificada'],
-            'PREDICATE': 2,
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['ExtrairPorLocalizaoPoly'] = processing.run('native:extractbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(8)
+        feedback.setCurrentStep(6)
         if feedback.isCanceled():
             return {}
 
@@ -137,10 +115,35 @@ class PostoDeGasolina(QgsProcessingAlgorithm):
         alg_params = {
             'INPUT': outputs['Recortar2']['OUTPUT'],
             'INTERSECT': parameters['reaedificada'],
-            'PREDICATE': 2,
+            'PREDICATE': 2,  # disjoint
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['ExtrairPorLocalizaoPontos'] = processing.run('native:extractbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(7)
+        if feedback.isCanceled():
+            return {}
+
+        # Recortar
+        alg_params = {
+            'INPUT': outputs['Poligonos']['CONCATENATION'],
+            'OVERLAY': parameters['definaareadeinteresse2'],
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['Recortar'] = processing.run('native:clip', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(8)
+        if feedback.isCanceled():
+            return {}
+
+        # Extrair por localização (poly)
+        alg_params = {
+            'INPUT': outputs['Recortar']['OUTPUT'],
+            'INTERSECT': parameters['reaedificada'],
+            'PREDICATE': 2,  # disjoint
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['ExtrairPorLocalizaoPoly'] = processing.run('native:extractbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(9)
         if feedback.isCanceled():
@@ -150,11 +153,12 @@ class PostoDeGasolina(QgsProcessingAlgorithm):
         alg_params = {
             'DISSOLVE': False,
             'DISTANCE': 0.001129,
-            'END_CAP_STYLE': 0,
+            'END_CAP_STYLE': 0,  # Round
             'INPUT': outputs['ExtrairPorLocalizaoPoly']['OUTPUT'],
-            'JOIN_STYLE': 0,
+            'JOIN_STYLE': 0,  # Round
             'MITER_LIMIT': 2,
             'SEGMENTS': 5,
+            'SEPARATE_DISJOINT': False,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['Buffer'] = processing.run('native:buffer', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
@@ -167,7 +171,7 @@ class PostoDeGasolina(QgsProcessingAlgorithm):
         alg_params = {
             'INPUT': outputs['ExtrairPorLocalizaoPoly']['OUTPUT'],
             'INTERSECT': outputs['Buffer2']['OUTPUT'],
-            'PREDICATE': 2,
+            'PREDICATE': 2,  # disjoint
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['ExtrairPorLocalizao'] = processing.run('native:extractbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
@@ -176,16 +180,50 @@ class PostoDeGasolina(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
+        # Unir atributos pela posição
+        alg_params = {
+            'DISCARD_NONMATCHING': False,
+            'INPUT': parameters['entrecomacamadaderefernciadotipopontoasertestada'],
+            'JOIN': outputs['Buffer']['OUTPUT'],
+            'JOIN_FIELDS': '',
+            'METHOD': 1,  # Take attributes of the first matching feature only (one-to-one)
+            'PREDICATE': 0,  # intersect
+            'PREFIX': '',
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['UnirAtributosPelaPosio'] = processing.run('qgis:joinattributesbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(12)
+        if feedback.isCanceled():
+            return {}
+
         # Extrair por localização
         alg_params = {
             'INPUT': outputs['ExtrairPorLocalizaoPontos']['OUTPUT'],
             'INTERSECT': outputs['Buffer2']['OUTPUT'],
-            'PREDICATE': 2,
+            'PREDICATE': 2,  # disjoint
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['ExtrairPorLocalizao'] = processing.run('native:extractbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(12)
+        feedback.setCurrentStep(13)
+        if feedback.isCanceled():
+            return {}
+
+        # Calculadora de campo (5)
+        alg_params = {
+            'FIELD_LENGTH': 255,
+            'FIELD_NAME': 'nome',
+            'FIELD_PRECISION': 3,
+            'FIELD_TYPE': 2,  # Text (string)
+            'FORMULA': 'if("nome" IS NULL, "name", "nome")',
+            'INPUT': outputs['UnirAtributosPelaPosio']['OUTPUT'],
+            'NEW_FIELD': False,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['CalculadoraDeCampo5'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(14)
         if feedback.isCanceled():
             return {}
 
@@ -197,24 +235,24 @@ class PostoDeGasolina(QgsProcessingAlgorithm):
         }
         outputs['Centroides'] = processing.run('native:centroids', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(13)
+        feedback.setCurrentStep(15)
         if feedback.isCanceled():
             return {}
 
-        # Unir atributos pela posição
+        # Calculadora de campo (6)
         alg_params = {
-            'DISCARD_NONMATCHING': False,
-            'INPUT': parameters['entrecomacamadaderefernciadotipopontoasertestada'],
-            'JOIN': outputs['Buffer']['OUTPUT'],
-            'JOIN_FIELDS': '',
-            'METHOD': 1,
-            'PREDICATE': 0,
-            'PREFIX': '',
+            'FIELD_LENGTH': 255,
+            'FIELD_NAME': 'nome_no_osm',
+            'FIELD_PRECISION': 3,
+            'FIELD_TYPE': 2,  # Text (string)
+            'FORMULA': '"name"',
+            'INPUT': outputs['CalculadoraDeCampo5']['OUTPUT'],
+            'NEW_FIELD': True,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
-        outputs['UnirAtributosPelaPosio'] = processing.run('qgis:joinattributesbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['CalculadoraDeCampo6'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(14)
+        feedback.setCurrentStep(16)
         if feedback.isCanceled():
             return {}
 
@@ -223,15 +261,32 @@ class PostoDeGasolina(QgsProcessingAlgorithm):
             'FIELD_LENGTH': 10,
             'FIELD_NAME': 'osm_id',
             'FIELD_PRECISION': 0,
-            'FIELD_TYPE': 2,
-            'FORMULA': '\"osm_way_id\"',
+            'FIELD_TYPE': 2,  # Text (string)
+            'FORMULA': '"osm_way_id"',
+            'INPUT': outputs['CalculadoraDeCampo6']['OUTPUT'],
+            'NEW_FIELD': False,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['CalculadoraDeCampo'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(17)
+        if feedback.isCanceled():
+            return {}
+
+        # Calculadora de campo
+        alg_params = {
+            'FIELD_LENGTH': 10,
+            'FIELD_NAME': 'osm_id',
+            'FIELD_PRECISION': 0,
+            'FIELD_TYPE': 2,  # Text (string)
+            'FORMULA': '"osm_way_id"',
             'INPUT': outputs['Centroides']['OUTPUT'],
             'NEW_FIELD': False,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['CalculadoraDeCampo'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(15)
+        feedback.setCurrentStep(18)
         if feedback.isCanceled():
             return {}
 
@@ -243,24 +298,24 @@ class PostoDeGasolina(QgsProcessingAlgorithm):
         }
         outputs['MesclarCamadasVetoriais'] = processing.run('native:mergevectorlayers', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(16)
+        feedback.setCurrentStep(19)
         if feedback.isCanceled():
             return {}
 
-        # Calculadora de campo (5)
+        # Calculadora de campo
         alg_params = {
-            'FIELD_LENGTH': 255,
-            'FIELD_NAME': 'nome',
+            'FIELD_LENGTH': 5,
+            'FIELD_NAME': 'geometria_osm',
             'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 2,
-            'FORMULA': 'if(\"nome\" IS NULL, \"name\", \"nome\")',
-            'INPUT': outputs['UnirAtributosPelaPosio']['OUTPUT'],
-            'NEW_FIELD': False,
+            'FIELD_TYPE': 2,  # Text (string)
+            'FORMULA': "'Não'",
+            'INPUT': outputs['CalculadoraDeCampo']['OUTPUT'],
+            'NEW_FIELD': True,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
-        outputs['CalculadoraDeCampo5'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['CalculadoraDeCampo'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(17)
+        feedback.setCurrentStep(20)
         if feedback.isCanceled():
             return {}
 
@@ -269,32 +324,32 @@ class PostoDeGasolina(QgsProcessingAlgorithm):
             'FIELD_LENGTH': 10,
             'FIELD_NAME': 'PontoInicio',
             'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 1,
-            'FORMULA': 'strpos(  \"other_tags\" , (\'\"name\"=>\"\'))+9',
+            'FIELD_TYPE': 1,  # Integer (32 bit)
+            'FORMULA': 'strpos(  "other_tags" , (\'"name"=>"\'))+9',
             'INPUT': outputs['MesclarCamadasVetoriais']['OUTPUT'],
             'NEW_FIELD': True,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['CalculadoraDeCampo_pt_inicio2'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(18)
+        feedback.setCurrentStep(21)
         if feedback.isCanceled():
             return {}
 
-        # Calculadora de campo (6)
+        # Calculadora de campo
         alg_params = {
-            'FIELD_LENGTH': 255,
-            'FIELD_NAME': 'nome_no_osm',
+            'FIELD_LENGTH': 5,
+            'FIELD_NAME': 'nome_osm',
             'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 2,
-            'FORMULA': '\"name\"',
-            'INPUT': outputs['CalculadoraDeCampo5']['OUTPUT'],
+            'FIELD_TYPE': 2,  # Text (string)
+            'FORMULA': 'if( "nome_no_osm" IS NOT NULL,  \'Sim\' ,\'Não\')',
+            'INPUT': outputs['CalculadoraDeCampo']['OUTPUT'],
             'NEW_FIELD': True,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
-        outputs['CalculadoraDeCampo6'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['CalculadoraDeCampo'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(19)
+        feedback.setCurrentStep(22)
         if feedback.isCanceled():
             return {}
 
@@ -303,32 +358,15 @@ class PostoDeGasolina(QgsProcessingAlgorithm):
             'FIELD_LENGTH': 255,
             'FIELD_NAME': 'nome_no_osm',
             'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 2,
-            'FORMULA': '\"name\"',
+            'FIELD_TYPE': 2,  # Text (string)
+            'FORMULA': '"name"',
             'INPUT': outputs['CalculadoraDeCampo_pt_inicio2']['OUTPUT'],
             'NEW_FIELD': True,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['CalculadoraDeCampo_nome2'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(20)
-        if feedback.isCanceled():
-            return {}
-
-        # Calculadora de campo
-        alg_params = {
-            'FIELD_LENGTH': 10,
-            'FIELD_NAME': 'osm_id',
-            'FIELD_PRECISION': 0,
-            'FIELD_TYPE': 2,
-            'FORMULA': '\"osm_way_id\"',
-            'INPUT': outputs['CalculadoraDeCampo6']['OUTPUT'],
-            'NEW_FIELD': False,
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['CalculadoraDeCampo'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(21)
+        feedback.setCurrentStep(23)
         if feedback.isCanceled():
             return {}
 
@@ -340,7 +378,7 @@ class PostoDeGasolina(QgsProcessingAlgorithm):
         }
         outputs['DescartarCampos1'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(22)
+        feedback.setCurrentStep(24)
         if feedback.isCanceled():
             return {}
 
@@ -351,40 +389,6 @@ class PostoDeGasolina(QgsProcessingAlgorithm):
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['DescartarCampos2'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(23)
-        if feedback.isCanceled():
-            return {}
-
-        # Calculadora de campo
-        alg_params = {
-            'FIELD_LENGTH': 5,
-            'FIELD_NAME': 'geometria_osm',
-            'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 2,
-            'FORMULA': '\'Não\'',
-            'INPUT': outputs['CalculadoraDeCampo']['OUTPUT'],
-            'NEW_FIELD': True,
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['CalculadoraDeCampo'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(24)
-        if feedback.isCanceled():
-            return {}
-
-        # Calculadora de campo
-        alg_params = {
-            'FIELD_LENGTH': 5,
-            'FIELD_NAME': 'nome_osm',
-            'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 2,
-            'FORMULA': 'if( \"nome_no_osm\" IS NOT NULL,  \'Sim\' ,\'Não\')',
-            'INPUT': outputs['CalculadoraDeCampo']['OUTPUT'],
-            'NEW_FIELD': True,
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['CalculadoraDeCampo'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(25)
         if feedback.isCanceled():
@@ -419,8 +423,8 @@ class PostoDeGasolina(QgsProcessingAlgorithm):
             'FIELD_LENGTH': 5,
             'FIELD_NAME': 'nome_osm',
             'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 2,
-            'FORMULA': 'if( \"nome_no_osm\" IS NOT NULL,  \'Sim\' ,\'Não\')',
+            'FIELD_TYPE': 2,  # Text (string)
+            'FORMULA': 'if( "nome_no_osm" IS NOT NULL,  \'Sim\' ,\'Não\')',
             'INPUT': outputs['DescartarCampos4']['OUTPUT'],
             'NEW_FIELD': True,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
@@ -436,8 +440,8 @@ class PostoDeGasolina(QgsProcessingAlgorithm):
             'FIELD_LENGTH': 5,
             'FIELD_NAME': 'geometria_osm',
             'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 2,
-            'FORMULA': '\'Sim\'',
+            'FIELD_TYPE': 2,  # Text (string)
+            'FORMULA': "'Sim'",
             'INPUT': outputs['CalculadoraDeCampoNome_osm1']['OUTPUT'],
             'NEW_FIELD': True,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
@@ -453,8 +457,8 @@ class PostoDeGasolina(QgsProcessingAlgorithm):
             'FIELD_LENGTH': 255,
             'FIELD_NAME': 'nome',
             'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 2,
-            'FORMULA': '\"nome_no_osm\"',
+            'FIELD_TYPE': 2,  # Text (string)
+            'FORMULA': '"nome_no_osm"',
             'INPUT': outputs['CalculadoraDeCampoGeom_osm1']['OUTPUT'],
             'NEW_FIELD': False,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
@@ -479,7 +483,7 @@ class PostoDeGasolina(QgsProcessingAlgorithm):
 
         # Editar campos
         alg_params = {
-            'FIELDS_MAPPING': [{'expression': '\"id\"','length': -1,'name': 'id','precision': 0,'type': 2},{'expression': '\"nome\"','length': 150,'name': 'nome','precision': -1,'type': 10},{'expression': '\"geometriaaproximada\"','length': -1,'name': 'geometriaaproximada','precision': 0,'type': 2},{'expression': '\"operacional\"','length': -1,'name': 'operacional','precision': 0,'type': 2},{'expression': '\"situacaofisica\"','length': -1,'name': 'situacaofisica','precision': 0,'type': 2},{'expression': '\"matconstr\"','length': -1,'name': 'matconstr','precision': 0,'type': 2},{'expression': '\"alturaaproximada\"','length': -1,'name': 'alturaaproximada','precision': -1,'type': 6},{'expression': '\"turistica\"','length': -1,'name': 'turistica','precision': 0,'type': 2},{'expression': '\"cultura\"','length': -1,'name': 'cultura','precision': 0,'type': 2},{'expression': '\"administracao\"','length': -1,'name': 'administracao','precision': 0,'type': 2},{'expression': '\"classeativecon\"','length': -1,'name': 'classeativecon','precision': 0,'type': 10},{'expression': '\"divisaoativecon\"','length': -1,'name': 'divisaoativecon','precision': 0,'type': 10},{'expression': '\"grupoativecon\"','length': -1,'name': 'grupoativecon','precision': 0,'type': 10},{'expression': '\"proprioadm\"','length': -1,'name': 'proprioadm','precision': 0,'type': 2},{'expression': '\"cep\"','length': 80,'name': 'cep','precision': -1,'type': 10},{'expression': '\"pais\"','length': 80,'name': 'pais','precision': -1,'type': 10},{'expression': '\"unidadefederacao\"','length': 2,'name': 'unidadefederacao','precision': -1,'type': 10},{'expression': '\"municipio\"','length': 80,'name': 'municipio','precision': -1,'type': 10},{'expression': '\"bairro\"','length': 80,'name': 'bairro','precision': -1,'type': 10},{'expression': '\"logradouro\"','length': 200,'name': 'logradouro','precision': -1,'type': 10},{'expression': '\"bloco\"','length': 80,'name': 'bloco','precision': -1,'type': 10},{'expression': '\"numerosequencial\"','length': -1,'name': 'numerosequencial','precision': 0,'type': 2},{'expression': '\"numerometrico\"','length': -1,'name': 'numerometrico','precision': 0,'type': 2},{'expression': '\"numeropavimentos\"','length': -1,'name': 'numeropavimentos','precision': 0,'type': 2},{'expression': '\"tipoedifcomercserv\"','length': -1,'name': 'tipoedifcomercserv','precision': 0,'type': 10},{'expression': '\"finalidade\"','length': -1,'name': 'finalidade','precision': 0,'type': 10},{'expression': '\"tx_comentario_producao\"','length': -1,'name': 'tx_comentario_producao','precision': -1,'type': 10},{'expression': '\"id_nomebngb\"','length': -1,'name': 'id_nomebngb','precision': 0,'type': 2},{'expression': '\"id_produtor\"','length': -1,'name': 'id_produtor','precision': 0,'type': 2},{'expression': '\"id_elementoprodutor\"','length': -1,'name': 'id_elementoprodutor','precision': 0,'type': 2},{'expression': '\"id_antigo\"','length': -1,'name': 'id_antigo','precision': 0,'type': 2},{'expression': '\"cd_situacao_do_objeto\"','length': 2,'name': 'cd_situacao_do_objeto','precision': -1,'type': 10},{'expression': '\"id_usuario\"','length': -1,'name': 'id_usuario','precision': 0,'type': 2},{'expression': '\"dt_atualizacao\"','length': -1,'name': 'dt_atualizacao','precision': -1,'type': 16},{'expression': '\"tx_geocodigo_municipio\"','length': -1,'name': 'tx_geocodigo_municipio','precision': -1,'type': 10},{'expression': '\"id_assentamento_precario\"','length': -1,'name': 'id_assentamento_precario','precision': 0,'type': 2},{'expression': '\"id_complexo_habitacional\"','length': -1,'name': 'id_complexo_habitacional','precision': 0,'type': 2},{'expression': '\"id_condominio\"','length': -1,'name': 'id_condominio','precision': 0,'type': 2},{'expression': '\"id_conjunto_habitacional\"','length': -1,'name': 'id_conjunto_habitacional','precision': 0,'type': 2},{'expression': '\"id_estrut_transporte\"','length': -1,'name': 'id_estrut_transporte','precision': 0,'type': 2},{'expression': '\"id_estrut_apoio\"','length': -1,'name': 'id_estrut_apoio','precision': 0,'type': 2},{'expression': '\"id_estacao_rodoviaria\"','length': -1,'name': 'id_estacao_rodoviaria','precision': 0,'type': 2},{'expression': '\"id_estacao_metroviaria\"','length': -1,'name': 'id_estacao_metroviaria','precision': 0,'type': 2},{'expression': '\"id_estacao_ferroviaria\"','length': -1,'name': 'id_estacao_ferroviaria','precision': 0,'type': 2},{'expression': '\"id_terminal_rodoviario\"','length': -1,'name': 'id_terminal_rodoviario','precision': 0,'type': 2},{'expression': '\"id_terminal_ferroviario\"','length': -1,'name': 'id_terminal_ferroviario','precision': 0,'type': 2},{'expression': '\"id_terminal_hidroviario\"','length': -1,'name': 'id_terminal_hidroviario','precision': 0,'type': 2},{'expression': '\"situacaonome\"','length': -1,'name': 'situacaonome','precision': 0,'type': 2},{'expression': '\"insumonome\"','length': -1,'name': 'insumonome','precision': -1,'type': 10},{'expression': '\"situacaoquantoaolimite\"','length': -1,'name': 'situacaoquantoaolimite','precision': 0,'type': 2},{'expression': '\"observacaong\"','length': -1,'name': 'observacaong','precision': -1,'type': 10},{'expression': '\"validacaobngb\"','length': 1,'name': 'validacaobngb','precision': -1,'type': 10},{'expression': '\"compatibilidadeng\"','length': -1,'name': 'compatibilidadeng','precision': -1,'type': 10},{'expression': '\"osm_id\"','length': 0,'name': 'osm_id','precision': 0,'type': 10},{'expression': '\"nome_no_osm\"','length': 255,'name': 'nome_no_osm','precision': 3,'type': 10},{'expression': '\"geometria_osm\"','length': 5,'name': 'geometria_osm','precision': 3,'type': 10},{'expression': '\"nome_osm\"','length': 5,'name': 'nome_osm','precision': 3,'type': 10}],
+            'FIELDS_MAPPING': [{'expression': '"id"','length': -1,'name': 'id','precision': 0,'type': 2},{'expression': '"nome"','length': 150,'name': 'nome','precision': -1,'type': 10},{'expression': '"geometriaaproximada"','length': -1,'name': 'geometriaaproximada','precision': 0,'type': 2},{'expression': '"operacional"','length': -1,'name': 'operacional','precision': 0,'type': 2},{'expression': '"situacaofisica"','length': -1,'name': 'situacaofisica','precision': 0,'type': 2},{'expression': '"matconstr"','length': -1,'name': 'matconstr','precision': 0,'type': 2},{'expression': '"alturaaproximada"','length': -1,'name': 'alturaaproximada','precision': -1,'type': 6},{'expression': '"turistica"','length': -1,'name': 'turistica','precision': 0,'type': 2},{'expression': '"cultura"','length': -1,'name': 'cultura','precision': 0,'type': 2},{'expression': '"administracao"','length': -1,'name': 'administracao','precision': 0,'type': 2},{'expression': '"classeativecon"','length': -1,'name': 'classeativecon','precision': 0,'type': 10},{'expression': '"divisaoativecon"','length': -1,'name': 'divisaoativecon','precision': 0,'type': 10},{'expression': '"grupoativecon"','length': -1,'name': 'grupoativecon','precision': 0,'type': 10},{'expression': '"proprioadm"','length': -1,'name': 'proprioadm','precision': 0,'type': 2},{'expression': '"cep"','length': 80,'name': 'cep','precision': -1,'type': 10},{'expression': '"pais"','length': 80,'name': 'pais','precision': -1,'type': 10},{'expression': '"unidadefederacao"','length': 2,'name': 'unidadefederacao','precision': -1,'type': 10},{'expression': '"municipio"','length': 80,'name': 'municipio','precision': -1,'type': 10},{'expression': '"bairro"','length': 80,'name': 'bairro','precision': -1,'type': 10},{'expression': '"logradouro"','length': 200,'name': 'logradouro','precision': -1,'type': 10},{'expression': '"bloco"','length': 80,'name': 'bloco','precision': -1,'type': 10},{'expression': '"numerosequencial"','length': -1,'name': 'numerosequencial','precision': 0,'type': 2},{'expression': '"numerometrico"','length': -1,'name': 'numerometrico','precision': 0,'type': 2},{'expression': '"numeropavimentos"','length': -1,'name': 'numeropavimentos','precision': 0,'type': 2},{'expression': '"tipoedifcomercserv"','length': -1,'name': 'tipoedifcomercserv','precision': 0,'type': 10},{'expression': '"finalidade"','length': -1,'name': 'finalidade','precision': 0,'type': 10},{'expression': '"tx_comentario_producao"','length': -1,'name': 'tx_comentario_producao','precision': -1,'type': 10},{'expression': '"id_nomebngb"','length': -1,'name': 'id_nomebngb','precision': 0,'type': 2},{'expression': '"id_produtor"','length': -1,'name': 'id_produtor','precision': 0,'type': 2},{'expression': '"id_elementoprodutor"','length': -1,'name': 'id_elementoprodutor','precision': 0,'type': 2},{'expression': '"id_antigo"','length': -1,'name': 'id_antigo','precision': 0,'type': 2},{'expression': '"cd_situacao_do_objeto"','length': 2,'name': 'cd_situacao_do_objeto','precision': -1,'type': 10},{'expression': '"id_usuario"','length': -1,'name': 'id_usuario','precision': 0,'type': 2},{'expression': '"dt_atualizacao"','length': -1,'name': 'dt_atualizacao','precision': -1,'type': 16},{'expression': '"tx_geocodigo_municipio"','length': -1,'name': 'tx_geocodigo_municipio','precision': -1,'type': 10},{'expression': '"id_assentamento_precario"','length': -1,'name': 'id_assentamento_precario','precision': 0,'type': 2},{'expression': '"id_complexo_habitacional"','length': -1,'name': 'id_complexo_habitacional','precision': 0,'type': 2},{'expression': '"id_condominio"','length': -1,'name': 'id_condominio','precision': 0,'type': 2},{'expression': '"id_conjunto_habitacional"','length': -1,'name': 'id_conjunto_habitacional','precision': 0,'type': 2},{'expression': '"id_estrut_transporte"','length': -1,'name': 'id_estrut_transporte','precision': 0,'type': 2},{'expression': '"id_estrut_apoio"','length': -1,'name': 'id_estrut_apoio','precision': 0,'type': 2},{'expression': '"id_estacao_rodoviaria"','length': -1,'name': 'id_estacao_rodoviaria','precision': 0,'type': 2},{'expression': '"id_estacao_metroviaria"','length': -1,'name': 'id_estacao_metroviaria','precision': 0,'type': 2},{'expression': '"id_estacao_ferroviaria"','length': -1,'name': 'id_estacao_ferroviaria','precision': 0,'type': 2},{'expression': '"id_terminal_rodoviario"','length': -1,'name': 'id_terminal_rodoviario','precision': 0,'type': 2},{'expression': '"id_terminal_ferroviario"','length': -1,'name': 'id_terminal_ferroviario','precision': 0,'type': 2},{'expression': '"id_terminal_hidroviario"','length': -1,'name': 'id_terminal_hidroviario','precision': 0,'type': 2},{'expression': '"situacaonome"','length': -1,'name': 'situacaonome','precision': 0,'type': 2},{'expression': '"insumonome"','length': -1,'name': 'insumonome','precision': -1,'type': 10},{'expression': '"situacaoquantoaolimite"','length': -1,'name': 'situacaoquantoaolimite','precision': 0,'type': 2},{'expression': '"observacaong"','length': -1,'name': 'observacaong','precision': -1,'type': 10},{'expression': '"validacaobngb"','length': 1,'name': 'validacaobngb','precision': -1,'type': 10},{'expression': '"compatibilidadeng"','length': -1,'name': 'compatibilidadeng','precision': -1,'type': 10},{'expression': '"osm_id"','length': 0,'name': 'osm_id','precision': 0,'type': 10},{'expression': '"nome_no_osm"','length': 255,'name': 'nome_no_osm','precision': 3,'type': 10},{'expression': '"geometria_osm"','length': 5,'name': 'geometria_osm','precision': 3,'type': 10},{'expression': '"nome_osm"','length': 5,'name': 'nome_osm','precision': 3,'type': 10}],
             'INPUT': outputs['MesclarCamadasVetoriais']['OUTPUT'],
             'OUTPUT': parameters['Posto_de_combustivel_p']
         }

@@ -47,6 +47,8 @@ class Transformadores(QgsProcessingAlgorithm):
 
         # Baixar dados 
         alg_params = {
+            'DATA': '',
+            'METHOD': 0,  # GET
             'URL': outputs['ConsultaPorTagsDoOsm']['OUTPUT_URL'],
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
@@ -78,23 +80,24 @@ class Transformadores(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
+        # Fixar geometrias
+        alg_params = {
+            'INPUT': outputs['Poligonos']['CONCATENATION'],
+            'METHOD': 1,  # Structure
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['FixarGeometrias'] = processing.run('native:fixgeometries', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(5)
+        if feedback.isCanceled():
+            return {}
+
         # Linhas para polígonos
         alg_params = {
             'INPUT': outputs['Linhas']['CONCATENATION'],
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['LinhasParaPolgonos'] = processing.run('qgis:linestopolygons', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(5)
-        if feedback.isCanceled():
-            return {}
-
-        # Fixar geometrias
-        alg_params = {
-            'INPUT': outputs['Poligonos']['CONCATENATION'],
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['FixarGeometrias'] = processing.run('native:fixgeometries', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(6)
         if feedback.isCanceled():
@@ -210,6 +213,19 @@ class Transformadores(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
+        # Extrair por localização
+        alg_params = {
+            'INPUT': outputs['Recortar']['OUTPUT'],
+            'INTERSECT': parameters['entrecomacamadaderefernciadotipopontoasertestada'],
+            'PREDICATE': 2,  # disjoint
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['ExtrairPorLocalizao'] = processing.run('native:extractbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(15)
+        if feedback.isCanceled():
+            return {}
+
         # Unir atributos pela posição
         alg_params = {
             'DISCARD_NONMATCHING': False,
@@ -222,19 +238,6 @@ class Transformadores(QgsProcessingAlgorithm):
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['UnirAtributosPelaPosio'] = processing.run('qgis:joinattributesbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(15)
-        if feedback.isCanceled():
-            return {}
-
-        # Extrair por localização
-        alg_params = {
-            'INPUT': outputs['Recortar']['OUTPUT'],
-            'INTERSECT': parameters['entrecomacamadaderefernciadotipopontoasertestada'],
-            'PREDICATE': 2,  # disjoint
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['ExtrairPorLocalizao'] = processing.run('native:extractbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(16)
         if feedback.isCanceled():
@@ -276,18 +279,6 @@ class Transformadores(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
-        # Descartar campo(s) (2)
-        alg_params = {
-            'COLUMN': 'path',
-            'INPUT': outputs['DescartarCampos1']['OUTPUT'],
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['DescartarCampos2'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(20)
-        if feedback.isCanceled():
-            return {}
-
         # Descartar campo(s) (6)
         alg_params = {
             'COLUMN': 'layer',
@@ -296,19 +287,19 @@ class Transformadores(QgsProcessingAlgorithm):
         }
         outputs['DescartarCampos6'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(21)
+        feedback.setCurrentStep(20)
         if feedback.isCanceled():
             return {}
 
-        # Descartar campo(s) (7)
+        # Descartar campo(s) (2)
         alg_params = {
             'COLUMN': 'path',
-            'INPUT': outputs['DescartarCampos6']['OUTPUT'],
+            'INPUT': outputs['DescartarCampos1']['OUTPUT'],
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
-        outputs['DescartarCampos7'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['DescartarCampos2'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(22)
+        feedback.setCurrentStep(21)
         if feedback.isCanceled():
             return {}
 
@@ -320,19 +311,19 @@ class Transformadores(QgsProcessingAlgorithm):
         }
         outputs['DescartarCampos3'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(23)
+        feedback.setCurrentStep(22)
         if feedback.isCanceled():
             return {}
 
-        # Descartar campo(s) (8)
+        # Descartar campo(s) (7)
         alg_params = {
-            'COLUMN': 'PontoInicio',
-            'INPUT': outputs['DescartarCampos7']['OUTPUT'],
+            'COLUMN': 'path',
+            'INPUT': outputs['DescartarCampos6']['OUTPUT'],
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
-        outputs['DescartarCampos8'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['DescartarCampos7'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(24)
+        feedback.setCurrentStep(23)
         if feedback.isCanceled():
             return {}
 
@@ -344,24 +335,7 @@ class Transformadores(QgsProcessingAlgorithm):
         }
         outputs['DescartarCampos4'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(25)
-        if feedback.isCanceled():
-            return {}
-
-        # Calculadora de campo NOME_OSM (2)
-        alg_params = {
-            'FIELD_LENGTH': 5,
-            'FIELD_NAME': 'nome_osm',
-            'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 2,  # Text (string)
-            'FORMULA': 'if ("nome_no_osm" IS NOT NULL, \'Sim\',\'Não\')',
-            'INPUT': outputs['DescartarCampos8']['OUTPUT'],
-            'NEW_FIELD': True,
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['CalculadoraDeCampoNome_osm2'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(26)
+        feedback.setCurrentStep(24)
         if feedback.isCanceled():
             return {}
 
@@ -377,6 +351,35 @@ class Transformadores(QgsProcessingAlgorithm):
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['CalculadoraDeCampoNome_osm1'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(25)
+        if feedback.isCanceled():
+            return {}
+
+        # Descartar campo(s) (8)
+        alg_params = {
+            'COLUMN': 'PontoInicio',
+            'INPUT': outputs['DescartarCampos7']['OUTPUT'],
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['DescartarCampos8'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(26)
+        if feedback.isCanceled():
+            return {}
+
+        # Calculadora de campo NOME_OSM (2)
+        alg_params = {
+            'FIELD_LENGTH': 5,
+            'FIELD_NAME': 'nome_osm',
+            'FIELD_PRECISION': 3,
+            'FIELD_TYPE': 2,  # Text (string)
+            'FORMULA': 'if ("nome_no_osm" IS NOT NULL, \'Sim\',\'Não\')',
+            'INPUT': outputs['DescartarCampos8']['OUTPUT'],
+            'NEW_FIELD': True,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['CalculadoraDeCampoNome_osm2'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(27)
         if feedback.isCanceled():
@@ -399,23 +402,6 @@ class Transformadores(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
-        # Calculadora de campo
-        alg_params = {
-            'FIELD_LENGTH': 255,
-            'FIELD_NAME': 'nome',
-            'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 1,  # Integer (32 bit)
-            'FORMULA': 'if(  "nome"  IS NULL  AND  "nome_no_osm" IS NOT NULL,  "nome_no_osm" ,  if(  "nome"   IS NOT NULL, "nome" ,NULL))',
-            'INPUT': outputs['CalculadoraDeCampoGeom_osm1']['OUTPUT'],
-            'NEW_FIELD': False,
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['CalculadoraDeCampo'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(29)
-        if feedback.isCanceled():
-            return {}
-
         # Calculadora de campo GEOM_OSM (2)
         alg_params = {
             'FIELD_LENGTH': 5,
@@ -428,6 +414,23 @@ class Transformadores(QgsProcessingAlgorithm):
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['CalculadoraDeCampoGeom_osm2'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(29)
+        if feedback.isCanceled():
+            return {}
+
+        # Calculadora de campo
+        alg_params = {
+            'FIELD_LENGTH': 255,
+            'FIELD_NAME': 'nome',
+            'FIELD_PRECISION': 3,
+            'FIELD_TYPE': 1,  # Integer (32 bit)
+            'FORMULA': 'if(  "nome"  IS NULL  AND  "nome_no_osm" IS NOT NULL,  "nome_no_osm" ,  if(  "nome"   IS NOT NULL, "nome" ,NULL))',
+            'INPUT': outputs['CalculadoraDeCampoGeom_osm1']['OUTPUT'],
+            'NEW_FIELD': False,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['CalculadoraDeCampo'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(30)
         if feedback.isCanceled():

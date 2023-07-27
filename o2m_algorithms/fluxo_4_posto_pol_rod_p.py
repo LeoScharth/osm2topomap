@@ -31,18 +31,18 @@ class Policia_rodoviaria(QgsProcessingAlgorithm):
         results = {}
         outputs = {}
 
-        # Buffer (2)
+        # Calculadora de campo
         alg_params = {
-            'DISSOLVE': False,
-            'DISTANCE': 0.000452,
-            'END_CAP_STYLE': 0,  # Round
+            'FIELD_LENGTH': 5,
+            'FIELD_NAME': 'geometria_osm',
+            'FIELD_PRECISION': 3,
+            'FIELD_TYPE': 2,  # Text (string)
+            'FORMULA': "'Não'",
             'INPUT': parameters['entrecomacamadaderefernciadotipopontoasertestada'],
-            'JOIN_STYLE': 0,  # Round
-            'MITER_LIMIT': 2,
-            'SEGMENTS': 16,
+            'NEW_FIELD': True,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
-        outputs['Buffer2'] = processing.run('native:buffer', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['CalculadoraDeCampo'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(1)
         if feedback.isCanceled():
@@ -62,42 +62,21 @@ class Policia_rodoviaria(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
-        # Calculadora de campo
+        # Buffer (2)
         alg_params = {
-            'FIELD_LENGTH': 5,
-            'FIELD_NAME': 'geometria_osm',
-            'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 2,  # Text (string)
-            'FORMULA': "'Não'",
+            'DISSOLVE': False,
+            'DISTANCE': 0.000452,
+            'END_CAP_STYLE': 0,  # Round
             'INPUT': parameters['entrecomacamadaderefernciadotipopontoasertestada'],
-            'NEW_FIELD': True,
+            'JOIN_STYLE': 0,  # Round
+            'MITER_LIMIT': 2,
+            'SEGMENTS': 16,
+            'SEPARATE_DISJOINT': False,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
-        outputs['CalculadoraDeCampo'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['Buffer2'] = processing.run('native:buffer', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(3)
-        if feedback.isCanceled():
-            return {}
-
-        # Baixar dados 
-        alg_params = {
-            'URL': outputs['ConsultaPorTagsDoOsm']['OUTPUT_URL'],
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['BaixarDados'] = processing.run('native:filedownloader', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(4)
-        if feedback.isCanceled():
-            return {}
-
-        # Pontos
-        alg_params = {
-            'INPUT_1': outputs['BaixarDados']['OUTPUT'],
-            'INPUT_2': QgsExpression("'|layername=points'").evaluate()
-        }
-        outputs['Pontos'] = processing.run('native:stringconcatenation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(5)
         if feedback.isCanceled():
             return {}
 
@@ -113,6 +92,30 @@ class Policia_rodoviaria(QgsProcessingAlgorithm):
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['CalculadoraDeCampo'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(4)
+        if feedback.isCanceled():
+            return {}
+
+        # Baixar dados 
+        alg_params = {
+            'DATA': '',
+            'METHOD': 0,  # GET
+            'URL': outputs['ConsultaPorTagsDoOsm']['OUTPUT_URL'],
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['BaixarDados'] = processing.run('native:filedownloader', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(5)
+        if feedback.isCanceled():
+            return {}
+
+        # Pontos
+        alg_params = {
+            'INPUT_1': outputs['BaixarDados']['OUTPUT'],
+            'INPUT_2': QgsExpression("'|layername=points'").evaluate()
+        }
+        outputs['Pontos'] = processing.run('native:stringconcatenation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(6)
         if feedback.isCanceled():

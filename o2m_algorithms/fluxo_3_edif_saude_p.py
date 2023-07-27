@@ -41,6 +41,7 @@ class Saude(QgsProcessingAlgorithm):
             'JOIN_STYLE': 0,  # Round
             'MITER_LIMIT': 2,
             'SEGMENTS': 16,
+            'SEPARATE_DISJOINT': False,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['Buffer2'] = processing.run('native:buffer', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
@@ -79,12 +80,27 @@ class Saude(QgsProcessingAlgorithm):
 
         # Baixar arquivo (2)
         alg_params = {
+            'DATA': '',
+            'METHOD': 0,  # GET
             'URL': outputs['ConsultaPorTagsDoOsm2']['OUTPUT_URL'],
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['BaixarArquivo2'] = processing.run('native:filedownloader', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(4)
+        if feedback.isCanceled():
+            return {}
+
+        # Baixar dados 
+        alg_params = {
+            'DATA': '',
+            'METHOD': 0,  # GET
+            'URL': outputs['ConsultaPorTagsDoOsm']['OUTPUT_URL'],
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['BaixarDados'] = processing.run('native:filedownloader', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(5)
         if feedback.isCanceled():
             return {}
 
@@ -95,18 +111,18 @@ class Saude(QgsProcessingAlgorithm):
         }
         outputs['Pontos2'] = processing.run('native:stringconcatenation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(5)
+        feedback.setCurrentStep(6)
         if feedback.isCanceled():
             return {}
 
-        # Baixar dados 
+        # Poligonos (2)
         alg_params = {
-            'URL': outputs['ConsultaPorTagsDoOsm']['OUTPUT_URL'],
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            'INPUT_1': outputs['BaixarArquivo2']['OUTPUT'],
+            'INPUT_2': QgsExpression("'|layername=multipolygons'").evaluate()
         }
-        outputs['BaixarDados'] = processing.run('native:filedownloader', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['Poligonos2'] = processing.run('native:stringconcatenation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(6)
+        feedback.setCurrentStep(7)
         if feedback.isCanceled():
             return {}
 
@@ -117,7 +133,30 @@ class Saude(QgsProcessingAlgorithm):
         }
         outputs['Poligonos'] = processing.run('native:stringconcatenation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(7)
+        feedback.setCurrentStep(8)
+        if feedback.isCanceled():
+            return {}
+
+        # Pontos
+        alg_params = {
+            'INPUT_1': outputs['BaixarDados']['OUTPUT'],
+            'INPUT_2': QgsExpression("'|layername=points'").evaluate()
+        }
+        outputs['Pontos'] = processing.run('native:stringconcatenation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(9)
+        if feedback.isCanceled():
+            return {}
+
+        # Fixar geometrias
+        alg_params = {
+            'INPUT': outputs['Poligonos']['CONCATENATION'],
+            'METHOD': 1,  # Structure
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['FixarGeometrias'] = processing.run('native:fixgeometries', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(10)
         if feedback.isCanceled():
             return {}
 
@@ -133,39 +172,6 @@ class Saude(QgsProcessingAlgorithm):
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['CalculadoraDeCampoPt2'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(8)
-        if feedback.isCanceled():
-            return {}
-
-        # Poligonos (2)
-        alg_params = {
-            'INPUT_1': outputs['BaixarArquivo2']['OUTPUT'],
-            'INPUT_2': QgsExpression("'|layername=multipolygons'").evaluate()
-        }
-        outputs['Poligonos2'] = processing.run('native:stringconcatenation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(9)
-        if feedback.isCanceled():
-            return {}
-
-        # Pontos
-        alg_params = {
-            'INPUT_1': outputs['BaixarDados']['OUTPUT'],
-            'INPUT_2': QgsExpression("'|layername=points'").evaluate()
-        }
-        outputs['Pontos'] = processing.run('native:stringconcatenation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(10)
-        if feedback.isCanceled():
-            return {}
-
-        # Fixar geometrias
-        alg_params = {
-            'INPUT': outputs['Poligonos']['CONCATENATION'],
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['FixarGeometrias'] = processing.run('native:fixgeometries', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(11)
         if feedback.isCanceled():
@@ -188,6 +194,18 @@ class Saude(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
+        # Fixar geometrias
+        alg_params = {
+            'INPUT': outputs['Poligonos2']['CONCATENATION'],
+            'METHOD': 1,  # Structure
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['FixarGeometrias'] = processing.run('native:fixgeometries', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(13)
+        if feedback.isCanceled():
+            return {}
+
         # Join_Point
         alg_params = {
             'CRS': 'ProjectCrs',
@@ -195,17 +213,6 @@ class Saude(QgsProcessingAlgorithm):
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['Join_point'] = processing.run('native:mergevectorlayers', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(13)
-        if feedback.isCanceled():
-            return {}
-
-        # Fixar geometrias
-        alg_params = {
-            'INPUT': outputs['Poligonos2']['CONCATENATION'],
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['FixarGeometrias'] = processing.run('native:fixgeometries', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(14)
         if feedback.isCanceled():
@@ -299,8 +306,9 @@ class Saude(QgsProcessingAlgorithm):
 
         # Dissolver
         alg_params = {
-            'FIELD': 'nome_no_osm',
+            'FIELD': ['nome_no_osm'],
             'INPUT': outputs['CalculadoraDeCampo_nome']['OUTPUT'],
+            'SEPARATE_DISJOINT': False,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['Dissolver'] = processing.run('native:dissolve', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
@@ -321,19 +329,6 @@ class Saude(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
-        # Extrair por localização
-        alg_params = {
-            'INPUT': outputs['Recortar']['OUTPUT'],
-            'INTERSECT': parameters['entrecomacamadaderefernciadotipopontoasertestada'],
-            'PREDICATE': 2,  # disjoint
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['ExtrairPorLocalizao'] = processing.run('native:extractbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(23)
-        if feedback.isCanceled():
-            return {}
-
         # Buffer
         alg_params = {
             'DISSOLVE': False,
@@ -343,23 +338,12 @@ class Saude(QgsProcessingAlgorithm):
             'JOIN_STYLE': 0,  # Round
             'MITER_LIMIT': 2,
             'SEGMENTS': 16,
+            'SEPARATE_DISJOINT': False,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['Buffer'] = processing.run('native:buffer', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(24)
-        if feedback.isCanceled():
-            return {}
-
-        # Centroides
-        alg_params = {
-            'ALL_PARTS': False,
-            'INPUT': outputs['ExtrairPorLocalizao']['OUTPUT'],
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['Centroides'] = processing.run('native:centroids', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(25)
+        feedback.setCurrentStep(23)
         if feedback.isCanceled():
             return {}
 
@@ -376,7 +360,20 @@ class Saude(QgsProcessingAlgorithm):
         }
         outputs['UnirAtributosPelaPosio'] = processing.run('qgis:joinattributesbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(26)
+        feedback.setCurrentStep(24)
+        if feedback.isCanceled():
+            return {}
+
+        # Extrair por localização
+        alg_params = {
+            'INPUT': outputs['Recortar']['OUTPUT'],
+            'INTERSECT': parameters['entrecomacamadaderefernciadotipopontoasertestada'],
+            'PREDICATE': 2,  # disjoint
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['ExtrairPorLocalizao'] = processing.run('native:extractbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(25)
         if feedback.isCanceled():
             return {}
 
@@ -389,7 +386,7 @@ class Saude(QgsProcessingAlgorithm):
         }
         outputs['ExtrairPorLocalizao'] = processing.run('native:extractbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(27)
+        feedback.setCurrentStep(26)
         if feedback.isCanceled():
             return {}
 
@@ -401,32 +398,7 @@ class Saude(QgsProcessingAlgorithm):
         }
         outputs['DescartarCampos1'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(28)
-        if feedback.isCanceled():
-            return {}
-
-        # Recortar (2)
-        alg_params = {
-            'INPUT': outputs['ExtrairPorLocalizao']['OUTPUT'],
-            'OVERLAY': parameters['definaareadeinteresse2'],
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['Recortar2'] = processing.run('native:clip', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(29)
-        if feedback.isCanceled():
-            return {}
-
-        # Extrair por localização
-        alg_params = {
-            'INPUT': outputs['Recortar2']['OUTPUT'],
-            'INTERSECT': outputs['Buffer2']['OUTPUT'],
-            'PREDICATE': 2,  # disjoint
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['ExtrairPorLocalizao'] = processing.run('native:extractbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(30)
+        feedback.setCurrentStep(27)
         if feedback.isCanceled():
             return {}
 
@@ -438,24 +410,31 @@ class Saude(QgsProcessingAlgorithm):
         }
         outputs['DescartarCampos2'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(31)
+        feedback.setCurrentStep(28)
         if feedback.isCanceled():
             return {}
 
-        # Calculadora de campo_PT_INICIO(2)
+        # Centroides
         alg_params = {
-            'FIELD_LENGTH': 10,
-            'FIELD_NAME': 'PontoInicio',
-            'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 1,  # Integer (32 bit)
-            'FORMULA': 'strpos(  "other_tags" , (\'"name"=>"\'))+9',
+            'ALL_PARTS': False,
             'INPUT': outputs['ExtrairPorLocalizao']['OUTPUT'],
-            'NEW_FIELD': True,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
-        outputs['CalculadoraDeCampo_pt_inicio2'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['Centroides'] = processing.run('native:centroids', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(32)
+        feedback.setCurrentStep(29)
+        if feedback.isCanceled():
+            return {}
+
+        # Recortar (2)
+        alg_params = {
+            'INPUT': outputs['ExtrairPorLocalizao']['OUTPUT'],
+            'OVERLAY': parameters['definaareadeinteresse2'],
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['Recortar2'] = processing.run('native:clip', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(30)
         if feedback.isCanceled():
             return {}
 
@@ -467,24 +446,7 @@ class Saude(QgsProcessingAlgorithm):
         }
         outputs['DescartarCampos3'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(33)
-        if feedback.isCanceled():
-            return {}
-
-        # Calculadora de campo_NOME(2)
-        alg_params = {
-            'FIELD_LENGTH': 255,
-            'FIELD_NAME': 'nome_no_osm',
-            'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 2,  # Text (string)
-            'FORMULA': '"name"',
-            'INPUT': outputs['CalculadoraDeCampo_pt_inicio2']['OUTPUT'],
-            'NEW_FIELD': True,
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['CalculadoraDeCampo_nome2'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(34)
+        feedback.setCurrentStep(31)
         if feedback.isCanceled():
             return {}
 
@@ -496,19 +458,7 @@ class Saude(QgsProcessingAlgorithm):
         }
         outputs['DescartarCampos4'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(35)
-        if feedback.isCanceled():
-            return {}
-
-        # Mesclar camadas vetoriais
-        alg_params = {
-            'CRS': 'ProjectCrs',
-            'LAYERS': [outputs['CalculadoraDeCampo_nome2']['OUTPUT'],outputs['Centroides']['OUTPUT']],
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['MesclarCamadasVetoriais'] = processing.run('native:mergevectorlayers', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(36)
+        feedback.setCurrentStep(32)
         if feedback.isCanceled():
             return {}
 
@@ -525,19 +475,20 @@ class Saude(QgsProcessingAlgorithm):
         }
         outputs['CalculadoraDeCampoNome_osm1'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(37)
+        feedback.setCurrentStep(33)
         if feedback.isCanceled():
             return {}
 
-        # Descartar campo(s) (5)
+        # Extrair por localização
         alg_params = {
-            'COLUMN': 'other_tags',
-            'INPUT': outputs['MesclarCamadasVetoriais']['OUTPUT'],
+            'INPUT': outputs['Recortar2']['OUTPUT'],
+            'INTERSECT': outputs['Buffer2']['OUTPUT'],
+            'PREDICATE': 2,  # disjoint
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
-        outputs['DescartarCampos5'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['ExtrairPorLocalizao'] = processing.run('native:extractbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(38)
+        feedback.setCurrentStep(34)
         if feedback.isCanceled():
             return {}
 
@@ -554,7 +505,24 @@ class Saude(QgsProcessingAlgorithm):
         }
         outputs['CalculadoraDeCampoGeom_osm1'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(39)
+        feedback.setCurrentStep(35)
+        if feedback.isCanceled():
+            return {}
+
+        # Calculadora de campo_PT_INICIO(2)
+        alg_params = {
+            'FIELD_LENGTH': 10,
+            'FIELD_NAME': 'PontoInicio',
+            'FIELD_PRECISION': 3,
+            'FIELD_TYPE': 1,  # Integer (32 bit)
+            'FORMULA': 'strpos(  "other_tags" , (\'"name"=>"\'))+9',
+            'INPUT': outputs['ExtrairPorLocalizao']['OUTPUT'],
+            'NEW_FIELD': True,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['CalculadoraDeCampo_pt_inicio2'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(36)
         if feedback.isCanceled():
             return {}
 
@@ -570,6 +538,47 @@ class Saude(QgsProcessingAlgorithm):
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['CalculadoraDeCampo'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(37)
+        if feedback.isCanceled():
+            return {}
+
+        # Calculadora de campo_NOME(2)
+        alg_params = {
+            'FIELD_LENGTH': 255,
+            'FIELD_NAME': 'nome_no_osm',
+            'FIELD_PRECISION': 3,
+            'FIELD_TYPE': 2,  # Text (string)
+            'FORMULA': '"name"',
+            'INPUT': outputs['CalculadoraDeCampo_pt_inicio2']['OUTPUT'],
+            'NEW_FIELD': True,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['CalculadoraDeCampo_nome2'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(38)
+        if feedback.isCanceled():
+            return {}
+
+        # Mesclar camadas vetoriais
+        alg_params = {
+            'CRS': 'ProjectCrs',
+            'LAYERS': [outputs['CalculadoraDeCampo_nome2']['OUTPUT'],outputs['Centroides']['OUTPUT']],
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['MesclarCamadasVetoriais'] = processing.run('native:mergevectorlayers', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(39)
+        if feedback.isCanceled():
+            return {}
+
+        # Descartar campo(s) (5)
+        alg_params = {
+            'COLUMN': 'other_tags',
+            'INPUT': outputs['MesclarCamadasVetoriais']['OUTPUT'],
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['DescartarCampos5'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(40)
         if feedback.isCanceled():

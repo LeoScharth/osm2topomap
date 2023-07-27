@@ -2,7 +2,7 @@
 Model exported as python.
 Name : Policia
 Group : IBGE
-With QGIS : 31605
+With QGIS : 33200
 """
 
 from qgis.core import QgsProcessing
@@ -46,6 +46,8 @@ class Policia(QgsProcessingAlgorithm):
 
         # Baixar dados 
         alg_params = {
+            'DATA': '',
+            'METHOD': 0,  # GET
             'URL': outputs['ConsultaPorTagsDoOsm']['OUTPUT_URL'],
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
@@ -55,48 +57,25 @@ class Policia(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
-        # Poligonos
+        # Pontos
         alg_params = {
             'INPUT_1': outputs['BaixarDados']['OUTPUT'],
-            'INPUT_2': QgsExpression('\'|layername=multipolygons\'').evaluate()
+            'INPUT_2': QgsExpression("'|layername=points'").evaluate()
         }
-        outputs['Poligonos'] = processing.run('native:stringconcatenation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['Pontos'] = processing.run('native:stringconcatenation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(3)
         if feedback.isCanceled():
             return {}
 
-        # Fixar geometrias
-        alg_params = {
-            'INPUT': outputs['Poligonos']['CONCATENATION'],
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['FixarGeometrias'] = processing.run('native:fixgeometries', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(4)
-        if feedback.isCanceled():
-            return {}
-
-        # Pontos
+        # Poligonos
         alg_params = {
             'INPUT_1': outputs['BaixarDados']['OUTPUT'],
-            'INPUT_2': QgsExpression('\'|layername=points\'').evaluate()
+            'INPUT_2': QgsExpression("'|layername=multipolygons'").evaluate()
         }
-        outputs['Pontos'] = processing.run('native:stringconcatenation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['Poligonos'] = processing.run('native:stringconcatenation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(5)
-        if feedback.isCanceled():
-            return {}
-
-        # Recortar
-        alg_params = {
-            'INPUT': outputs['FixarGeometrias']['OUTPUT'],
-            'OVERLAY': parameters['definaareadeinteresse2'],
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['Recortar'] = processing.run('native:clip', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(6)
+        feedback.setCurrentStep(4)
         if feedback.isCanceled():
             return {}
 
@@ -108,7 +87,49 @@ class Policia(QgsProcessingAlgorithm):
         }
         outputs['Recortar2'] = processing.run('native:clip', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
+        feedback.setCurrentStep(5)
+        if feedback.isCanceled():
+            return {}
+
+        # Fixar geometrias
+        alg_params = {
+            'INPUT': outputs['Poligonos']['CONCATENATION'],
+            'METHOD': 1,  # Structure
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['FixarGeometrias'] = processing.run('native:fixgeometries', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(6)
+        if feedback.isCanceled():
+            return {}
+
+        # Recortar
+        alg_params = {
+            'INPUT': outputs['FixarGeometrias']['OUTPUT'],
+            'OVERLAY': parameters['definaareadeinteresse2'],
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['Recortar'] = processing.run('native:clip', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
         feedback.setCurrentStep(7)
+        if feedback.isCanceled():
+            return {}
+
+        # Buffer
+        alg_params = {
+            'DISSOLVE': False,
+            'DISTANCE': 1e-06,
+            'END_CAP_STYLE': 0,  # Round
+            'INPUT': outputs['Recortar']['OUTPUT'],
+            'JOIN_STYLE': 0,  # Round
+            'MITER_LIMIT': 2,
+            'SEGMENTS': 16,
+            'SEPARATE_DISJOINT': False,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['Buffer'] = processing.run('native:buffer', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(8)
         if feedback.isCanceled():
             return {}
 
@@ -120,7 +141,20 @@ class Policia(QgsProcessingAlgorithm):
         }
         outputs['Centroides'] = processing.run('native:centroids', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(8)
+        feedback.setCurrentStep(9)
+        if feedback.isCanceled():
+            return {}
+
+        # Extrair por localização
+        alg_params = {
+            'INPUT': outputs['Recortar2']['OUTPUT'],
+            'INTERSECT': outputs['Buffer']['OUTPUT'],
+            'PREDICATE': 2,  # disjoint
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['ExtrairPorLocalizao'] = processing.run('native:extractbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(10)
         if feedback.isCanceled():
             return {}
 
@@ -129,43 +163,13 @@ class Policia(QgsProcessingAlgorithm):
             'FIELD_LENGTH': 10,
             'FIELD_NAME': 'osm_id',
             'FIELD_PRECISION': 0,
-            'FIELD_TYPE': 2,
-            'FORMULA': 'if(\"osm_id\" IS NULL,\"osm_way_id\",\"osm_id\")',
+            'FIELD_TYPE': 2,  # Text (string)
+            'FORMULA': 'if("osm_id" IS NULL,"osm_way_id","osm_id")',
             'INPUT': outputs['Centroides']['OUTPUT'],
             'NEW_FIELD': False,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['CalculadoraDeCampo'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(9)
-        if feedback.isCanceled():
-            return {}
-
-        # Buffer
-        alg_params = {
-            'DISSOLVE': False,
-            'DISTANCE': 1e-06,
-            'END_CAP_STYLE': 0,
-            'INPUT': outputs['Recortar']['OUTPUT'],
-            'JOIN_STYLE': 0,
-            'MITER_LIMIT': 2,
-            'SEGMENTS': 16,
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['Buffer'] = processing.run('native:buffer', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(10)
-        if feedback.isCanceled():
-            return {}
-
-        # Extrair por localização
-        alg_params = {
-            'INPUT': outputs['Recortar2']['OUTPUT'],
-            'INTERSECT': outputs['Buffer']['OUTPUT'],
-            'PREDICATE': 2,
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['ExtrairPorLocalizao'] = processing.run('native:extractbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(11)
         if feedback.isCanceled():
@@ -185,7 +189,7 @@ class Policia(QgsProcessingAlgorithm):
 
         # Editar campos
         alg_params = {
-            'FIELDS_MAPPING': [{'expression': '\"name\"','length': 255,'name': 'nome','precision': 0,'type': 10},{'expression': '\"osm_id\"','length': 10,'name': 'osm_id','precision': 0,'type': 10},{'expression': '\"name\"','length': 255,'name': 'nome_no_osm','precision': 0,'type': 10},{'expression': '\'Sim\'','length': 5,'name': 'geometria_osm','precision': 0,'type': 10},{'expression': 'if(\"name\" IS NOT NULL,\'Sim\',\'Não\')','length': 5,'name': 'nome_osm','precision': 0,'type': 10}],
+            'FIELDS_MAPPING': [{'expression': '"name"','length': 255,'name': 'nome','precision': 0,'type': 10},{'expression': '"osm_id"','length': 10,'name': 'osm_id','precision': 0,'type': 10},{'expression': '"name"','length': 255,'name': 'nome_no_osm','precision': 0,'type': 10},{'expression': "'Sim'",'length': 5,'name': 'geometria_osm','precision': 0,'type': 10},{'expression': 'if("name" IS NOT NULL,\'Sim\',\'Não\')','length': 5,'name': 'nome_osm','precision': 0,'type': 10}],
             'INPUT': outputs['MesclarCamadasVetoriais']['OUTPUT'],
             'OUTPUT': parameters['Policia_p']
         }

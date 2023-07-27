@@ -2,7 +2,7 @@
 Model exported as python.
 Name : Power Line
 Group : IBGE
-With QGIS : 31605
+With QGIS : 33200
 """
 
 from qgis.core import QgsProcessing
@@ -59,40 +59,43 @@ class PowerLine(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
+        # Buffer_Referência
+        alg_params = {
+            'DISSOLVE': False,
+            'DISTANCE': 0.000452,
+            'END_CAP_STYLE': 0,  # Round
+            'INPUT': outputs['Recortar']['OUTPUT'],
+            'JOIN_STYLE': 0,  # Round
+            'MITER_LIMIT': 2,
+            'SEGMENTS': 16,
+            'SEPARATE_DISJOINT': False,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['Buffer_referncia'] = processing.run('native:buffer', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(3)
+        if feedback.isCanceled():
+            return {}
+
         # Baixar dados 
         alg_params = {
+            'DATA': '',
+            'METHOD': 0,  # GET
             'URL': outputs['ConsultaPorTagsDoOsm']['OUTPUT_URL'],
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['BaixarDados'] = processing.run('native:filedownloader', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(3)
+        feedback.setCurrentStep(4)
         if feedback.isCanceled():
             return {}
 
         # Linhas
         alg_params = {
             'INPUT_1': outputs['BaixarDados']['OUTPUT'],
-            'INPUT_2': QgsExpression('\'|layername=lines\'').evaluate()
+            'INPUT_2': QgsExpression("'|layername=lines'").evaluate()
         }
         outputs['Linhas'] = processing.run('native:stringconcatenation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(4)
-        if feedback.isCanceled():
-            return {}
-
-        # Buffer_Referência
-        alg_params = {
-            'DISSOLVE': False,
-            'DISTANCE': 0.000452,
-            'END_CAP_STYLE': 0,
-            'INPUT': outputs['Recortar']['OUTPUT'],
-            'JOIN_STYLE': 0,
-            'MITER_LIMIT': 2,
-            'SEGMENTS': 16,
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['Buffer_referncia'] = processing.run('native:buffer', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(5)
         if feedback.isCanceled():
@@ -126,11 +129,12 @@ class PowerLine(QgsProcessingAlgorithm):
         alg_params = {
             'DISSOLVE': False,
             'DISTANCE': 0.000452,
-            'END_CAP_STYLE': 0,
+            'END_CAP_STYLE': 0,  # Round
             'INPUT': outputs['RecorteConformeReaDeInteresse_linhas']['OUTPUT'],
-            'JOIN_STYLE': 0,
+            'JOIN_STYLE': 0,  # Round
             'MITER_LIMIT': 2,
             'SEGMENTS': 16,
+            'SEPARATE_DISJOINT': False,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['Buffer_osm'] = processing.run('native:buffer', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
@@ -144,7 +148,7 @@ class PowerLine(QgsProcessingAlgorithm):
             'FIELD_LENGTH': 10,
             'FIELD_NAME': 'Area_TOT',
             'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 0,
+            'FIELD_TYPE': 0,  # Decimal (double)
             'FORMULA': '$area',
             'INPUT': outputs['Buffer_osm']['OUTPUT'],
             'NEW_FIELD': True,
@@ -173,7 +177,7 @@ class PowerLine(QgsProcessingAlgorithm):
             'FIELD_LENGTH': 10,
             'FIELD_NAME': 'Area_DIF',
             'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 0,
+            'FIELD_TYPE': 0,  # Decimal (double)
             'FORMULA': '$area',
             'INPUT': outputs['Diferena']['OUTPUT'],
             'NEW_FIELD': True,
@@ -190,8 +194,8 @@ class PowerLine(QgsProcessingAlgorithm):
             'FIELD_LENGTH': 10,
             'FIELD_NAME': 'percentualExtraBaseRef',
             'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 0,
-            'FORMULA': '(\"Area_DIF\" *100)/ \"Area_TOT\"',
+            'FIELD_TYPE': 0,  # Decimal (double)
+            'FORMULA': '("Area_DIF" *100)/ "Area_TOT"',
             'INPUT': outputs['CalculadoraDeCampo_2']['OUTPUT'],
             'NEW_FIELD': True,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
@@ -206,8 +210,8 @@ class PowerLine(QgsProcessingAlgorithm):
         alg_params = {
             'FIELD': 'percentualExtraBaseRef',
             'INPUT': outputs['CalculadoraDeCampo_3']['OUTPUT'],
-            'METHOD': 0,
-            'OPERATOR': 3,
+            'METHOD': 0,  # creating new selection
+            'OPERATOR': 3,  # ≥
             'VALUE': parameters['entrecomaporcentagemdeexcessomnima']
         }
         outputs['SelecionarPorAtributo'] = processing.run('qgis:selectbyattribute', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
@@ -235,7 +239,7 @@ class PowerLine(QgsProcessingAlgorithm):
             'FIELD_2': 'osm_id',
             'INPUT': outputs['RecorteConformeReaDeInteresse_linhas']['OUTPUT'],
             'INPUT_2': outputs['ExtrairFeiesSelecionadas']['OUTPUT'],
-            'METHOD': 1,
+            'METHOD': 1,  # Take attributes of the first matching feature only (one-to-one)
             'PREFIX': '',
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
@@ -250,8 +254,8 @@ class PowerLine(QgsProcessingAlgorithm):
             'FIELD_LENGTH': 5,
             'FIELD_NAME': 'PontoInicio',
             'FIELD_PRECISION': 0,
-            'FIELD_TYPE': 1,
-            'FORMULA': 'strpos(  \"other_tags\" , (\'\"description\"=>\"\'))+16',
+            'FIELD_TYPE': 1,  # Integer (32 bit)
+            'FORMULA': 'strpos(  "other_tags" , (\'"description"=>"\'))+16',
             'INPUT': outputs['UnirAtributosPeloValorDoCampo']['OUTPUT'],
             'NEW_FIELD': True,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
@@ -267,8 +271,8 @@ class PowerLine(QgsProcessingAlgorithm):
             'FIELD_LENGTH': 25,
             'FIELD_NAME': 'description',
             'FIELD_PRECISION': 0,
-            'FIELD_TYPE': 2,
-            'FORMULA': 'if(  \"PontoInicio\" = \'16\' , \"\", substr(  \"other_tags\" ,\"PontoInicio\" ,   strpos(  substr(  \"other_tags\" ,\"PontoInicio\" ), \'\"\')-1))',
+            'FIELD_TYPE': 2,  # Text (string)
+            'FORMULA': 'if(  "PontoInicio" = \'16\' , "", substr(  "other_tags" ,"PontoInicio" ,   strpos(  substr(  "other_tags" ,"PontoInicio" ), \'"\')-1))',
             'INPUT': outputs['CalculadoraDeCampo1']['OUTPUT'],
             'NEW_FIELD': True,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
@@ -281,7 +285,7 @@ class PowerLine(QgsProcessingAlgorithm):
 
         # Editar campos
         alg_params = {
-            'FIELDS_MAPPING': [{'expression': '\"osm_id\"','length': 10,'name': 'osm_id','precision': 0,'type': 10},{'expression': '\"description\"','length': 255,'name': 'nome','precision': 0,'type': 10},{'expression': '\'Sim\'','length': 5,'name': 'geometria_osm','precision': 0,'type': 10},{'expression': 'if(\"description\" IS NOT NULL,\'Sim\',\'Não\')','length': 5,'name': 'nome_osm','precision': 0,'type': 10}],
+            'FIELDS_MAPPING': [{'expression': '"osm_id"','length': 10,'name': 'osm_id','precision': 0,'type': 10},{'expression': '"description"','length': 255,'name': 'nome','precision': 0,'type': 10},{'expression': "'Sim'",'length': 5,'name': 'geometria_osm','precision': 0,'type': 10},{'expression': 'if("description" IS NOT NULL,\'Sim\',\'Não\')','length': 5,'name': 'nome_osm','precision': 0,'type': 10}],
             'INPUT': outputs['CalculadoraDeCampo2']['OUTPUT'],
             'OUTPUT': parameters['Add_trecho_energia_l']
         }

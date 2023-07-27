@@ -2,7 +2,7 @@
 Model exported as python.
 Name : Aerogerador
 Group : IBGE
-With QGIS : 31605
+With QGIS : 33200
 """
 
 from qgis.core import QgsProcessing
@@ -46,6 +46,8 @@ class Aerogerador(QgsProcessingAlgorithm):
 
         # Baixar dados 
         alg_params = {
+            'DATA': '',
+            'METHOD': 0,  # GET
             'URL': outputs['ConsultaPorTagsDoOsm']['OUTPUT_URL'],
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
@@ -58,7 +60,7 @@ class Aerogerador(QgsProcessingAlgorithm):
         # Pontos
         alg_params = {
             'INPUT_1': outputs['BaixarDados']['OUTPUT'],
-            'INPUT_2': QgsExpression('\'|layername=points\'').evaluate()
+            'INPUT_2': QgsExpression("'|layername=points'").evaluate()
         }
         outputs['Pontos'] = processing.run('native:stringconcatenation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
@@ -83,8 +85,8 @@ class Aerogerador(QgsProcessingAlgorithm):
             'FIELD_LENGTH': 3,
             'FIELD_NAME': 'PontoInicio',
             'FIELD_PRECISION': 0,
-            'FIELD_TYPE': 1,
-            'FORMULA': 'strpos(  \"other_tags\" , (\'\"height\"=>\"\'))+11',
+            'FIELD_TYPE': 1,  # Integer (32 bit)
+            'FORMULA': 'strpos(  "other_tags" , (\'"height"=>"\'))+11',
             'INPUT': outputs['Recortar2']['OUTPUT'],
             'NEW_FIELD': True,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
@@ -100,8 +102,8 @@ class Aerogerador(QgsProcessingAlgorithm):
             'FIELD_LENGTH': 3,
             'FIELD_NAME': 'alturaTorreAer',
             'FIELD_PRECISION': 0,
-            'FIELD_TYPE': 1,
-            'FORMULA': 'if(  \"PontoInicio\" = \'11\' , \"\", substr(  \"other_tags\" ,\"PontoInicio\" ,   strpos(  substr(  \"other_tags\" ,\"PontoInicio\" ), \'\"\')-1))',
+            'FIELD_TYPE': 1,  # Integer (32 bit)
+            'FORMULA': 'if(  "PontoInicio" = \'11\' , "", substr(  "other_tags" ,"PontoInicio" ,   strpos(  substr(  "other_tags" ,"PontoInicio" ), \'"\')-1))',
             'INPUT': outputs['CalculadoraDeCampo']['OUTPUT'],
             'NEW_FIELD': True,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
@@ -114,7 +116,7 @@ class Aerogerador(QgsProcessingAlgorithm):
 
         # Editar campos
         alg_params = {
-            'FIELDS_MAPPING': [{'expression': '\"name\"','length': 255,'name': 'nome','precision': 0,'type': 10},{'expression': '\"alturaTorreAer\"','length': 3,'name': 'alturaTorreAer','precision': 0,'type': 2},{'expression': '\"osm_id\"','length': 0,'name': 'osm_id','precision': 0,'type': 10},{'expression': '\"name\"','length': 255,'name': 'nome_no_osm','precision': 0,'type': 10},{'expression': '\'Sim\'','length': 5,'name': 'geometria_osm','precision': 0,'type': 10},{'expression': 'if(\"name\" IS NOT NULL,\'Sim\',\'Não\')','length': 5,'name': 'nome_osm','precision': 0,'type': 10},{'expression': 'if(\"alturaTorreAer\" IS NOT NULL,\'Sim\',\'Não\')','length': 5,'name': 'alturaTorreAer_osm','precision': 0,'type': 10}],
+            'FIELDS_MAPPING': [{'expression': '"name"','length': 255,'name': 'nome','precision': 0,'type': 10},{'expression': '"alturaTorreAer"','length': 3,'name': 'alturaTorreAer','precision': 0,'type': 2},{'expression': '"osm_id"','length': 0,'name': 'osm_id','precision': 0,'type': 10},{'expression': '"name"','length': 255,'name': 'nome_no_osm','precision': 0,'type': 10},{'expression': "'Sim'",'length': 5,'name': 'geometria_osm','precision': 0,'type': 10},{'expression': 'if("name" IS NOT NULL,\'Sim\',\'Não\')','length': 5,'name': 'nome_osm','precision': 0,'type': 10},{'expression': 'if("alturaTorreAer" IS NOT NULL,\'Sim\',\'Não\')','length': 5,'name': 'alturaTorreAer_osm','precision': 0,'type': 10}],
             'INPUT': outputs['CalculadoraDeCampo2']['OUTPUT'],
             'OUTPUT': parameters['Aerogerador_p']
         }
