@@ -2,7 +2,7 @@
 Model exported as python.
 Name : Policia_Rodoviaria
 Group : IBGE
-With QGIS : 31605
+With QGIS : 33200
 """
 
 from qgis.core import QgsProcessing
@@ -35,9 +35,9 @@ class Policia_rodoviaria(QgsProcessingAlgorithm):
         alg_params = {
             'DISSOLVE': False,
             'DISTANCE': 0.000452,
-            'END_CAP_STYLE': 0,
+            'END_CAP_STYLE': 0,  # Round
             'INPUT': parameters['entrecomacamadaderefernciadotipopontoasertestada'],
-            'JOIN_STYLE': 0,
+            'JOIN_STYLE': 0,  # Round
             'MITER_LIMIT': 2,
             'SEGMENTS': 16,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
@@ -62,6 +62,23 @@ class Policia_rodoviaria(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
+        # Calculadora de campo
+        alg_params = {
+            'FIELD_LENGTH': 5,
+            'FIELD_NAME': 'geometria_osm',
+            'FIELD_PRECISION': 3,
+            'FIELD_TYPE': 2,  # Text (string)
+            'FORMULA': "'Não'",
+            'INPUT': parameters['entrecomacamadaderefernciadotipopontoasertestada'],
+            'NEW_FIELD': True,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['CalculadoraDeCampo'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(3)
+        if feedback.isCanceled():
+            return {}
+
         # Baixar dados 
         alg_params = {
             'URL': outputs['ConsultaPorTagsDoOsm']['OUTPUT_URL'],
@@ -69,24 +86,18 @@ class Policia_rodoviaria(QgsProcessingAlgorithm):
         }
         outputs['BaixarDados'] = processing.run('native:filedownloader', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(3)
+        feedback.setCurrentStep(4)
         if feedback.isCanceled():
             return {}
 
-        # Calculadora de campo
+        # Pontos
         alg_params = {
-            'FIELD_LENGTH': 5,
-            'FIELD_NAME': 'geometria_osm',
-            'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 2,
-            'FORMULA': '\'Não\'',
-            'INPUT': parameters['entrecomacamadaderefernciadotipopontoasertestada'],
-            'NEW_FIELD': True,
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            'INPUT_1': outputs['BaixarDados']['OUTPUT'],
+            'INPUT_2': QgsExpression("'|layername=points'").evaluate()
         }
-        outputs['CalculadoraDeCampo'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['Pontos'] = processing.run('native:stringconcatenation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(4)
+        feedback.setCurrentStep(5)
         if feedback.isCanceled():
             return {}
 
@@ -95,24 +106,13 @@ class Policia_rodoviaria(QgsProcessingAlgorithm):
             'FIELD_LENGTH': 5,
             'FIELD_NAME': 'nome_osm',
             'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 2,
-            'FORMULA': '\'Não\'',
+            'FIELD_TYPE': 2,  # Text (string)
+            'FORMULA': "'Não'",
             'INPUT': outputs['CalculadoraDeCampo']['OUTPUT'],
             'NEW_FIELD': True,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['CalculadoraDeCampo'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(5)
-        if feedback.isCanceled():
-            return {}
-
-        # Pontos
-        alg_params = {
-            'INPUT_1': outputs['BaixarDados']['OUTPUT'],
-            'INPUT_2': QgsExpression('\'|layername=points\'').evaluate()
-        }
-        outputs['Pontos'] = processing.run('native:stringconcatenation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(6)
         if feedback.isCanceled():
@@ -134,7 +134,7 @@ class Policia_rodoviaria(QgsProcessingAlgorithm):
         alg_params = {
             'INPUT': outputs['Recortar2']['OUTPUT'],
             'INTERSECT': outputs['Buffer2']['OUTPUT'],
-            'PREDICATE': 2,
+            'PREDICATE': 2,  # disjoint
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['ExtrairPorLocalizao'] = processing.run('native:extractbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
@@ -148,8 +148,8 @@ class Policia_rodoviaria(QgsProcessingAlgorithm):
             'FIELD_LENGTH': 10,
             'FIELD_NAME': 'PontoInicio',
             'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 1,
-            'FORMULA': 'strpos(  \"other_tags\" , (\'\"name\"=>\"\'))+9',
+            'FIELD_TYPE': 1,  # Integer (32 bit)
+            'FORMULA': 'strpos(  "other_tags" , (\'"name"=>"\'))+9',
             'INPUT': outputs['ExtrairPorLocalizao']['OUTPUT'],
             'NEW_FIELD': True,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
@@ -165,8 +165,8 @@ class Policia_rodoviaria(QgsProcessingAlgorithm):
             'FIELD_LENGTH': 255,
             'FIELD_NAME': 'nome_no_osm',
             'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 2,
-            'FORMULA': '\"name\"',
+            'FIELD_TYPE': 2,  # Text (string)
+            'FORMULA': '"name"',
             'INPUT': outputs['CalculadoraDeCampo_pt_inicio2']['OUTPUT'],
             'NEW_FIELD': True,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
@@ -230,8 +230,8 @@ class Policia_rodoviaria(QgsProcessingAlgorithm):
             'FIELD_LENGTH': 5,
             'FIELD_NAME': 'nome_osm',
             'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 2,
-            'FORMULA': 'if( \"nome_no_osm\" IS NOT NULL,  \'Sim\' ,\'Não\')',
+            'FIELD_TYPE': 2,  # Text (string)
+            'FORMULA': 'if( "nome_no_osm" IS NOT NULL,  \'Sim\' ,\'Não\')',
             'INPUT': outputs['DescartarCampos4']['OUTPUT'],
             'NEW_FIELD': True,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
@@ -247,8 +247,8 @@ class Policia_rodoviaria(QgsProcessingAlgorithm):
             'FIELD_LENGTH': 5,
             'FIELD_NAME': 'geometria_osm',
             'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 2,
-            'FORMULA': '\'Sim\'',
+            'FIELD_TYPE': 2,  # Text (string)
+            'FORMULA': "'Sim'",
             'INPUT': outputs['CalculadoraDeCampoNome_osm1']['OUTPUT'],
             'NEW_FIELD': True,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
@@ -264,8 +264,8 @@ class Policia_rodoviaria(QgsProcessingAlgorithm):
             'FIELD_LENGTH': 255,
             'FIELD_NAME': 'nome',
             'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 2,
-            'FORMULA': '\"nome_no_osm\"',
+            'FIELD_TYPE': 2,  # Text (string)
+            'FORMULA': '"nome_no_osm"',
             'INPUT': outputs['CalculadoraDeCampoGeom_osm1']['OUTPUT'],
             'NEW_FIELD': False,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
@@ -290,7 +290,7 @@ class Policia_rodoviaria(QgsProcessingAlgorithm):
 
         # Editar campos
         alg_params = {
-            'FIELDS_MAPPING': [{'expression': '\"id\"','length': -1,'name': 'id','precision': 0,'type': 2},{'expression': '\"nome\"','length': 150,'name': 'nome','precision': -1,'type': 10},{'expression': '\"geometriaaproximada\"','length': -1,'name': 'geometriaaproximada','precision': 0,'type': 2},{'expression': '\"operacional\"','length': -1,'name': 'operacional','precision': 0,'type': 2},{'expression': '\"situacaofisica\"','length': -1,'name': 'situacaofisica','precision': 0,'type': 2},{'expression': '\"matconstr\"','length': -1,'name': 'matconstr','precision': 0,'type': 2},{'expression': '\"alturaaproximada\"','length': -1,'name': 'alturaaproximada','precision': -1,'type': 6},{'expression': '\"turistica\"','length': -1,'name': 'turistica','precision': 0,'type': 2},{'expression': '\"cultura\"','length': -1,'name': 'cultura','precision': 0,'type': 2},{'expression': '\"administracao\"','length': -1,'name': 'administracao','precision': 0,'type': 2},{'expression': '\"classeativecon\"','length': -1,'name': 'classeativecon','precision': 0,'type': 10},{'expression': '\"divisaoativecon\"','length': -1,'name': 'divisaoativecon','precision': 0,'type': 10},{'expression': '\"grupoativecon\"','length': -1,'name': 'grupoativecon','precision': 0,'type': 10},{'expression': '\"proprioadm\"','length': -1,'name': 'proprioadm','precision': 0,'type': 2},{'expression': '\"cep\"','length': 80,'name': 'cep','precision': -1,'type': 10},{'expression': '\"pais\"','length': 80,'name': 'pais','precision': -1,'type': 10},{'expression': '\"unidadefederacao\"','length': 2,'name': 'unidadefederacao','precision': -1,'type': 10},{'expression': '\"municipio\"','length': 80,'name': 'municipio','precision': -1,'type': 10},{'expression': '\"bairro\"','length': 80,'name': 'bairro','precision': -1,'type': 10},{'expression': '\"logradouro\"','length': 200,'name': 'logradouro','precision': -1,'type': 10},{'expression': '\"bloco\"','length': 80,'name': 'bloco','precision': -1,'type': 10},{'expression': '\"numerosequencial\"','length': -1,'name': 'numerosequencial','precision': 0,'type': 2},{'expression': '\"numerometrico\"','length': -1,'name': 'numerometrico','precision': 0,'type': 2},{'expression': '\"numeropavimentos\"','length': -1,'name': 'numeropavimentos','precision': 0,'type': 2},{'expression': '\"tipousoedif\"','length': -1,'name': 'tipousoedif','precision': 0,'type': 2},{'expression': '\"jurisdicao\"','length': -1,'name': 'jurisdicao','precision': 0,'type': 2},{'expression': '\"tipoedifpubcivil\"','length': -1,'name': 'tipoedifpubcivil','precision': 0,'type': 10},{'expression': '\"tx_comentario_producao\"','length': -1,'name': 'tx_comentario_producao','precision': -1,'type': 10},{'expression': '\"id_nomebngb\"','length': -1,'name': 'id_nomebngb','precision': 0,'type': 2},{'expression': '\"id_produtor\"','length': -1,'name': 'id_produtor','precision': 0,'type': 2},{'expression': '\"id_elementoprodutor\"','length': -1,'name': 'id_elementoprodutor','precision': 0,'type': 2},{'expression': '\"id_antigo\"','length': -1,'name': 'id_antigo','precision': 0,'type': 2},{'expression': '\"cd_situacao_do_objeto\"','length': 2,'name': 'cd_situacao_do_objeto','precision': -1,'type': 10},{'expression': '\"id_usuario\"','length': -1,'name': 'id_usuario','precision': 0,'type': 2},{'expression': '\"dt_atualizacao\"','length': -1,'name': 'dt_atualizacao','precision': -1,'type': 16},{'expression': '\"tx_geocodigo_municipio\"','length': -1,'name': 'tx_geocodigo_municipio','precision': -1,'type': 10},{'expression': '\"id_assentamento_precario\"','length': -1,'name': 'id_assentamento_precario','precision': 0,'type': 2},{'expression': '\"id_complexo_habitacional\"','length': -1,'name': 'id_complexo_habitacional','precision': 0,'type': 2},{'expression': '\"id_condominio\"','length': -1,'name': 'id_condominio','precision': 0,'type': 2},{'expression': '\"id_conjunto_habitacional\"','length': -1,'name': 'id_conjunto_habitacional','precision': 0,'type': 2},{'expression': '\"situacaonome\"','length': -1,'name': 'situacaonome','precision': 0,'type': 2},{'expression': '\"insumonome\"','length': -1,'name': 'insumonome','precision': -1,'type': 10},{'expression': '\"situacaoquantoaolimite\"','length': -1,'name': 'situacaoquantoaolimite','precision': 0,'type': 2},{'expression': '\"observacaong\"','length': -1,'name': 'observacaong','precision': -1,'type': 10},{'expression': '\"validacaobngb\"','length': 1,'name': 'validacaobngb','precision': -1,'type': 10},{'expression': '\"compatibilidadeng\"','length': -1,'name': 'compatibilidadeng','precision': -1,'type': 10},{'expression': '\"osm_id\"','length': 10,'name': 'osm_id','precision': 0,'type': 10},{'expression': '\"nome_osm\"','length': 5,'name': 'nome_osm','precision': 3,'type': 10},{'expression': '\"geometria_osm\"','length': 5,'name': 'geometria_osm','precision': 3,'type': 10}],
+            'FIELDS_MAPPING': [{'expression': '"id"','length': -1,'name': 'id','precision': 0,'type': 2},{'expression': '"nome"','length': 150,'name': 'nome','precision': -1,'type': 10},{'expression': '"geometriaaproximada"','length': -1,'name': 'geometriaaproximada','precision': 0,'type': 2},{'expression': '"operacional"','length': -1,'name': 'operacional','precision': 0,'type': 2},{'expression': '"situacaofisica"','length': -1,'name': 'situacaofisica','precision': 0,'type': 2},{'expression': '"matconstr"','length': -1,'name': 'matconstr','precision': 0,'type': 2},{'expression': '"alturaaproximada"','length': -1,'name': 'alturaaproximada','precision': -1,'type': 6},{'expression': '"turistica"','length': -1,'name': 'turistica','precision': 0,'type': 2},{'expression': '"cultura"','length': -1,'name': 'cultura','precision': 0,'type': 2},{'expression': '"administracao"','length': -1,'name': 'administracao','precision': 0,'type': 2},{'expression': '"classeativecon"','length': -1,'name': 'classeativecon','precision': 0,'type': 10},{'expression': '"divisaoativecon"','length': -1,'name': 'divisaoativecon','precision': 0,'type': 10},{'expression': '"grupoativecon"','length': -1,'name': 'grupoativecon','precision': 0,'type': 10},{'expression': '"proprioadm"','length': -1,'name': 'proprioadm','precision': 0,'type': 2},{'expression': '"cep"','length': 80,'name': 'cep','precision': -1,'type': 10},{'expression': '"pais"','length': 80,'name': 'pais','precision': -1,'type': 10},{'expression': '"unidadefederacao"','length': 2,'name': 'unidadefederacao','precision': -1,'type': 10},{'expression': '"municipio"','length': 80,'name': 'municipio','precision': -1,'type': 10},{'expression': '"bairro"','length': 80,'name': 'bairro','precision': -1,'type': 10},{'expression': '"logradouro"','length': 200,'name': 'logradouro','precision': -1,'type': 10},{'expression': '"bloco"','length': 80,'name': 'bloco','precision': -1,'type': 10},{'expression': '"numerosequencial"','length': -1,'name': 'numerosequencial','precision': 0,'type': 2},{'expression': '"numerometrico"','length': -1,'name': 'numerometrico','precision': 0,'type': 2},{'expression': '"numeropavimentos"','length': -1,'name': 'numeropavimentos','precision': 0,'type': 2},{'expression': '"tipousoedif"','length': -1,'name': 'tipousoedif','precision': 0,'type': 2},{'expression': '"jurisdicao"','length': -1,'name': 'jurisdicao','precision': 0,'type': 2},{'expression': '"tipoedifpubcivil"','length': -1,'name': 'tipoedifpubcivil','precision': 0,'type': 10},{'expression': '"tx_comentario_producao"','length': -1,'name': 'tx_comentario_producao','precision': -1,'type': 10},{'expression': '"id_nomebngb"','length': -1,'name': 'id_nomebngb','precision': 0,'type': 2},{'expression': '"id_produtor"','length': -1,'name': 'id_produtor','precision': 0,'type': 2},{'expression': '"id_elementoprodutor"','length': -1,'name': 'id_elementoprodutor','precision': 0,'type': 2},{'expression': '"id_antigo"','length': -1,'name': 'id_antigo','precision': 0,'type': 2},{'expression': '"cd_situacao_do_objeto"','length': 2,'name': 'cd_situacao_do_objeto','precision': -1,'type': 10},{'expression': '"id_usuario"','length': -1,'name': 'id_usuario','precision': 0,'type': 2},{'expression': '"dt_atualizacao"','length': -1,'name': 'dt_atualizacao','precision': -1,'type': 16},{'expression': '"tx_geocodigo_municipio"','length': -1,'name': 'tx_geocodigo_municipio','precision': -1,'type': 10},{'expression': '"id_assentamento_precario"','length': -1,'name': 'id_assentamento_precario','precision': 0,'type': 2},{'expression': '"id_complexo_habitacional"','length': -1,'name': 'id_complexo_habitacional','precision': 0,'type': 2},{'expression': '"id_condominio"','length': -1,'name': 'id_condominio','precision': 0,'type': 2},{'expression': '"id_conjunto_habitacional"','length': -1,'name': 'id_conjunto_habitacional','precision': 0,'type': 2},{'expression': '"situacaonome"','length': -1,'name': 'situacaonome','precision': 0,'type': 2},{'expression': '"insumonome"','length': -1,'name': 'insumonome','precision': -1,'type': 10},{'expression': '"situacaoquantoaolimite"','length': -1,'name': 'situacaoquantoaolimite','precision': 0,'type': 2},{'expression': '"observacaong"','length': -1,'name': 'observacaong','precision': -1,'type': 10},{'expression': '"validacaobngb"','length': 1,'name': 'validacaobngb','precision': -1,'type': 10},{'expression': '"compatibilidadeng"','length': -1,'name': 'compatibilidadeng','precision': -1,'type': 10},{'expression': '"osm_id"','length': 10,'name': 'osm_id','precision': 0,'type': 10},{'expression': '"nome_osm"','length': 5,'name': 'nome_osm','precision': 3,'type': 10},{'expression': '"geometria_osm"','length': 5,'name': 'geometria_osm','precision': 3,'type': 10}],
             'INPUT': outputs['MesclarCamadasVetoriais']['OUTPUT'],
             'OUTPUT': parameters['Pol_rod_p']
         }
