@@ -106,7 +106,7 @@ class Quadra(QgsProcessingAlgorithm):
 
         # Calculadora de campo_OSM_ID
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 999,
             'FIELD_NAME': 'osm_id',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 1,  # Integer (32 bit)
@@ -583,7 +583,7 @@ class Quadra(QgsProcessingAlgorithm):
 
         # Calculadora de campo (loop)
         alg_params = {
-            'FIELD_LENGTH': 50,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'tipocampoquadra',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
@@ -612,7 +612,7 @@ class Quadra(QgsProcessingAlgorithm):
 
         # Editar campos
         alg_params = {
-            'FIELDS_MAPPING': [{'expression': '"nome"','length': 255,'name': 'nome','precision': 3,'type': 10},{'expression': '"id"','length': -1,'name': 'id','precision': 0,'type': 2},{'expression': '"geometriaaproximada"','length': -1,'name': 'geometriaaproximada','precision': 0,'type': 2},{'expression': '"operacional"','length': -1,'name': 'operacional','precision': 0,'type': 2},{'expression': '"situacaofisica"','length': -1,'name': 'situacaofisica','precision': 0,'type': 2},{'expression': '"tipocampoquadra"','length': 50,'name': 'tipocampoquadra','precision': 3,'type': 10},{'expression': '"tx_comentario_producao"','length': -1,'name': 'tx_comentario_producao','precision': -1,'type': 10},{'expression': '"id_nomebngb"','length': -1,'name': 'id_nomebngb','precision': 0,'type': 2},{'expression': '"id_produtor"','length': -1,'name': 'id_produtor','precision': 0,'type': 2},{'expression': '"id_elementoprodutor"','length': -1,'name': 'id_elementoprodutor','precision': 0,'type': 2},{'expression': '"id_antigo"','length': -1,'name': 'id_antigo','precision': 0,'type': 2},{'expression': '"cd_situacao_do_objeto"','length': 2,'name': 'cd_situacao_do_objeto','precision': -1,'type': 10},{'expression': '"id_usuario"','length': -1,'name': 'id_usuario','precision': 0,'type': 2},{'expression': '"dt_atualizacao"','length': -1,'name': 'dt_atualizacao','precision': -1,'type': 16},{'expression': '"tx_geocodigo_municipio"','length': -1,'name': 'tx_geocodigo_municipio','precision': -1,'type': 10},{'expression': '"id_complexo_desportivo_lazer"','length': -1,'name': 'id_complexo_desportivo_lazer','precision': 0,'type': 2},{'expression': '"id_complexo_desportivo"','length': -1,'name': 'id_complexo_desportivo','precision': 0,'type': 2},{'expression': '"id_complexo_recreativo"','length': -1,'name': 'id_complexo_recreativo','precision': 0,'type': 2},{'expression': '"situacaonome"','length': -1,'name': 'situacaonome','precision': 0,'type': 2},{'expression': '"insumonome"','length': -1,'name': 'insumonome','precision': -1,'type': 10},{'expression': '"situacaoquantoaolimite"','length': -1,'name': 'situacaoquantoaolimite','precision': 0,'type': 2},{'expression': '"observacaong"','length': -1,'name': 'observacaong','precision': -1,'type': 10},{'expression': '"validacaobngb"','length': 1,'name': 'validacaobngb','precision': -1,'type': 10},{'expression': '"compatibilidadeng"','length': -1,'name': 'compatibilidadeng','precision': -1,'type': 10},{'expression': '"osm_id"','length': 0,'name': 'osm_id','precision': 0,'type': 10},{'expression': '"nome_no_osm"','length': 255,'name': 'nome_no_osm','precision': 3,'type': 10},{'expression': '"nome_osm"','length': 5,'name': 'nome_osm','precision': 3,'type': 10},{'expression': '"geometria_osm"','length': 5,'name': 'geometria_osm','precision': 3,'type': 10},{'expression': '"tipo_c_q_osm"','length': 5,'name': 'tipo_c_q_osm','precision': 3,'type': 10}],
+            'FIELDS_MAPPING': [{'expression': '"nome"','length': 255,'name': 'nome','precision': 3,'type': 10},{'expression': '"id"','length': -1,'name': 'id','precision': 0,'type': 2},{'expression': '"geometriaaproximada"','length': -1,'name': 'geometriaaproximada','precision': 0,'type': 2},{'expression': '"operacional"','length': -1,'name': 'operacional','precision': 0,'type': 2},{'expression': '"situacaofisica"','length': -1,'name': 'situacaofisica','precision': 0,'type': 2},{'expression': '"tipocampoquadra"','length': 255,'name': 'tipocampoquadra','precision': 3,'type': 10},{'expression': '"tx_comentario_producao"','length': -1,'name': 'tx_comentario_producao','precision': -1,'type': 10},{'expression': '"id_nomebngb"','length': -1,'name': 'id_nomebngb','precision': 0,'type': 2},{'expression': '"id_produtor"','length': -1,'name': 'id_produtor','precision': 0,'type': 2},{'expression': '"id_elementoprodutor"','length': -1,'name': 'id_elementoprodutor','precision': 0,'type': 2},{'expression': '"id_antigo"','length': -1,'name': 'id_antigo','precision': 0,'type': 2},{'expression': '"cd_situacao_do_objeto"','length': 2,'name': 'cd_situacao_do_objeto','precision': -1,'type': 10},{'expression': '"id_usuario"','length': -1,'name': 'id_usuario','precision': 0,'type': 2},{'expression': '"dt_atualizacao"','length': -1,'name': 'dt_atualizacao','precision': -1,'type': 16},{'expression': '"tx_geocodigo_municipio"','length': -1,'name': 'tx_geocodigo_municipio','precision': -1,'type': 10},{'expression': '"id_complexo_desportivo_lazer"','length': -1,'name': 'id_complexo_desportivo_lazer','precision': 0,'type': 2},{'expression': '"id_complexo_desportivo"','length': -1,'name': 'id_complexo_desportivo','precision': 0,'type': 2},{'expression': '"id_complexo_recreativo"','length': -1,'name': 'id_complexo_recreativo','precision': 0,'type': 2},{'expression': '"situacaonome"','length': -1,'name': 'situacaonome','precision': 0,'type': 2},{'expression': '"insumonome"','length': -1,'name': 'insumonome','precision': -1,'type': 10},{'expression': '"situacaoquantoaolimite"','length': -1,'name': 'situacaoquantoaolimite','precision': 0,'type': 2},{'expression': '"observacaong"','length': -1,'name': 'observacaong','precision': -1,'type': 10},{'expression': '"validacaobngb"','length': 1,'name': 'validacaobngb','precision': -1,'type': 10},{'expression': '"compatibilidadeng"','length': -1,'name': 'compatibilidadeng','precision': -1,'type': 10},{'expression': '"osm_id"','length': 0,'name': 'osm_id','precision': 0,'type': 10},{'expression': '"nome_no_osm"','length': 255,'name': 'nome_no_osm','precision': 3,'type': 10},{'expression': '"nome_osm"','length': 5,'name': 'nome_osm','precision': 3,'type': 10},{'expression': '"geometria_osm"','length': 5,'name': 'geometria_osm','precision': 3,'type': 10},{'expression': '"tipo_c_q_osm"','length': 5,'name': 'tipo_c_q_osm','precision': 3,'type': 10}],
             'INPUT': outputs['DescartarCampos13']['OUTPUT'],
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
@@ -624,7 +624,7 @@ class Quadra(QgsProcessingAlgorithm):
 
         # Calculadora de campo Replace(1)
         alg_params = {
-            'FIELD_LENGTH': 50,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'tipocampoquadra',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
@@ -641,7 +641,7 @@ class Quadra(QgsProcessingAlgorithm):
 
         # Calculadora de campo Replace(2)
         alg_params = {
-            'FIELD_LENGTH': 50,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'tipocampoquadra',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
@@ -658,7 +658,7 @@ class Quadra(QgsProcessingAlgorithm):
 
         # Calculadora de campo Replace(3)
         alg_params = {
-            'FIELD_LENGTH': 50,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'tipocampoquadra',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
@@ -675,7 +675,7 @@ class Quadra(QgsProcessingAlgorithm):
 
         # Calculadora de campo Replace(4)
         alg_params = {
-            'FIELD_LENGTH': 50,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'tipocampoquadra',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
@@ -692,7 +692,7 @@ class Quadra(QgsProcessingAlgorithm):
 
         # Calculadora de campo Replace(5)
         alg_params = {
-            'FIELD_LENGTH': 50,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'tipocampoquadra',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)

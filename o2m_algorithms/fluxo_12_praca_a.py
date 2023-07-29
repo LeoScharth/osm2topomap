@@ -15,7 +15,7 @@ from qgis.core import QgsExpression
 import processing
 
 
-class Praa(QgsProcessingAlgorithm):
+class Praca(QgsProcessingAlgorithm):
 
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterString('EntrecomaChaveOSM', 'Entre com a Chave OSM', multiLine=False, defaultValue='leisure'))

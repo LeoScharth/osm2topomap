@@ -424,7 +424,7 @@ class Transformadores(QgsProcessingAlgorithm):
             'FIELD_LENGTH': 255,
             'FIELD_NAME': 'nome',
             'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 1,  # Integer (32 bit)
+            'FIELD_TYPE': 2,  # Text (string)
             'FORMULA': 'if(  "nome"  IS NULL  AND  "nome_no_osm" IS NOT NULL,  "nome_no_osm" ,  if(  "nome"   IS NOT NULL, "nome" ,NULL))',
             'INPUT': outputs['CalculadoraDeCampoGeom_osm1']['OUTPUT'],
             'NEW_FIELD': False,
