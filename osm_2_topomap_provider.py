@@ -30,7 +30,7 @@ __copyright__ = '(C) 2023 by Leonardo Scharth; Kauê Vestena; Silvana Camboim'
 
 __revision__ = '$Format:%H$'
 
-from qgis.core import QgsProcessingProvider
+from qgis.core import QgsProcessingProvider, QgsApplication
 # from .osm_2_topomap_algorithm import Osm2TopoMapAlgorithm
 from .o2m_algorithms.fluxo_1_grupos_transformadores_p import Transformadores
 from .o2m_algorithms.fluxo_2_campo_quadra_p import Quadra
@@ -45,6 +45,10 @@ from .o2m_algorithms.fluxo_12_praca_a import Praca
 from .o2m_algorithms.fluxo_13_14_via_deslocamento_l import ViaDeslocamento
 from .o2m_algorithms.fluxo_15_trecho_energia_l import PowerLine
 
+from qgis.PyQt.QtGui import QIcon
+from . import resources
+
+from os.path import join
 
 class Osm2TopoMapProvider(QgsProcessingProvider):
 
@@ -104,7 +108,14 @@ class Osm2TopoMapProvider(QgsProcessingProvider):
         Should return a QIcon which is used for your provider inside
         the Processing toolbox.
         """
-        return QgsProcessingProvider.icon(self)
+        # return QIcon(':/plugins/osm2topomap/icon.png')
+        profilepath = QgsApplication.qgisSettingsDirPath()
+        icon_rel_path = 'python/plugins/osm2topomap/icon.svg'
+        icon_path = join(profilepath,icon_rel_path)
+
+
+        return QIcon(icon_path)
+        # return QgsProcessingProvider.icon(self)
 
     def longName(self):
         """
