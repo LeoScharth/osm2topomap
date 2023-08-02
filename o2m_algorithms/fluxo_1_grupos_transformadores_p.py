@@ -31,6 +31,14 @@ class Transformadores(QgsProcessingAlgorithm):
         results = {}
         outputs = {}
 
+        def load_layer(result_ref):
+            from qgis.core import QgsProject
+            from qgis.core import QgsProcessingUtils
+
+            layer = QgsProcessingUtils.mapLayerFromString(result_ref['OUTPUT'],context)
+            QgsProject.instance().addMapLayer(layer)
+
+
         # Consulta por TAGs do OSM
         alg_params = {
             'EXTENT': parameters['Definaareadeinteresse'],
@@ -161,7 +169,7 @@ class Transformadores(QgsProcessingAlgorithm):
             'LAYERS': [outputs['DescartarCampos']['OUTPUT'],outputs['LinhasParaPolgonos']['OUTPUT']],
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
-        outputs['MesclarCamadasVetoriais'] = processing.run('native:mergevectorlayers', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['MesclarCamadasVetoriais2'] = processing.run('native:mergevectorlayers', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(11)
         if feedback.isCanceled():
@@ -174,7 +182,7 @@ class Transformadores(QgsProcessingAlgorithm):
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 1,  # Integer (32 bit)
             'FORMULA': 'strpos(  "other_tags" , (\'"name"=>"\'))+9',
-            'INPUT': outputs['MesclarCamadasVetoriais']['OUTPUT'],
+            'INPUT': outputs['MesclarCamadasVetoriais2']['OUTPUT'],
             'NEW_FIELD': True,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
@@ -207,7 +215,7 @@ class Transformadores(QgsProcessingAlgorithm):
             'OVERLAY': parameters['Definaareadeinteresse'],
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
-        outputs['Recortar'] = processing.run('native:clip', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['Recortar1'] = processing.run('native:clip', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(14)
         if feedback.isCanceled():
@@ -215,7 +223,7 @@ class Transformadores(QgsProcessingAlgorithm):
 
         # Extrair por localização
         alg_params = {
-            'INPUT': outputs['Recortar']['OUTPUT'],
+            'INPUT': outputs['Recortar1']['OUTPUT'],
             'INTERSECT': parameters['entrecomacamadaderefernciadotipopontoasertestada'],
             'PREDICATE': 2,  # disjoint
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
@@ -230,7 +238,7 @@ class Transformadores(QgsProcessingAlgorithm):
         alg_params = {
             'DISCARD_NONMATCHING': False,
             'INPUT': parameters['entrecomacamadaderefernciadotipopontoasertestada'],
-            'JOIN': outputs['Recortar']['OUTPUT'],
+            'JOIN': outputs['Recortar1']['OUTPUT'],
             'JOIN_FIELDS': None,
             'METHOD': 0,  # Create separate feature for each matching feature (one-to-many)
             'PREDICATE': 0,  # intersect
@@ -430,7 +438,7 @@ class Transformadores(QgsProcessingAlgorithm):
             'NEW_FIELD': False,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
-        outputs['CalculadoraDeCampo'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['CalculadoraDeCampo1'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(30)
         if feedback.isCanceled():
@@ -456,7 +464,7 @@ class Transformadores(QgsProcessingAlgorithm):
         # Mesclar camadas vetoriais
         alg_params = {
             'CRS': 'ProjectCrs',
-            'LAYERS': [outputs['CalculadoraDeCampo']['OUTPUT'],outputs['CalculadoraDeCampo']['OUTPUT']],
+            'LAYERS': [outputs['CalculadoraDeCampo1']['OUTPUT'],outputs['CalculadoraDeCampo']['OUTPUT']],
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['MesclarCamadasVetoriais'] = processing.run('native:mergevectorlayers', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
