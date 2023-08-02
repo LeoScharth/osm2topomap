@@ -467,7 +467,7 @@ class Transformadores(QgsProcessingAlgorithm):
             'LAYERS': [outputs['CalculadoraDeCampo1']['OUTPUT'],outputs['CalculadoraDeCampo']['OUTPUT']],
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
-        outputs['MesclarCamadasVetoriais'] = processing.run('native:mergevectorlayers', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['MesclarCamadasVetoriais1'] = processing.run('native:mergevectorlayers', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(32)
         if feedback.isCanceled():
@@ -476,7 +476,7 @@ class Transformadores(QgsProcessingAlgorithm):
         # Descartar campo(s) (9)
         alg_params = {
             'COLUMN': 'path',
-            'INPUT': outputs['MesclarCamadasVetoriais']['OUTPUT'],
+            'INPUT': outputs['MesclarCamadasVetoriais1']['OUTPUT'],
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['DescartarCampos9'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
