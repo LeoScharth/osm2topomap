@@ -32,6 +32,33 @@ class Saude(QgsProcessingAlgorithm):
         results = {}
         outputs = {}
 
+        # Consulta por TAGs do OSM
+        alg_params = {
+            'EXTENT': parameters['definaareadeinteresse2'],
+            'KEY': parameters['EntrecomaChaveOSM'],
+            'SERVER': 'https://lz4.overpass-api.de/api/interpreter',
+            'TIMEOUT': 25,
+            'VALUE': parameters['EntrecomoValorOSM']
+        }
+        outputs['ConsultaPorTagsDoOsm'] = processing.run('quickosm:buildqueryextent', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(1)
+        if feedback.isCanceled():
+            return {}
+
+        # Baixar dados 
+        alg_params = {
+            'DATA': '',
+            'METHOD': 0,  # GET
+            'URL': outputs['ConsultaPorTagsDoOsm']['OUTPUT_URL'],
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['BaixarDados'] = processing.run('native:filedownloader', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(2)
+        if feedback.isCanceled():
+            return {}
+
         # Buffer (2)
         alg_params = {
             'DISSOLVE': False,
@@ -46,21 +73,18 @@ class Saude(QgsProcessingAlgorithm):
         }
         outputs['Buffer2'] = processing.run('native:buffer', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(1)
+        feedback.setCurrentStep(3)
         if feedback.isCanceled():
             return {}
 
-        # Consulta por TAGs do OSM
+        # Poligonos
         alg_params = {
-            'EXTENT': parameters['definaareadeinteresse2'],
-            'KEY': parameters['EntrecomaChaveOSM'],
-            'SERVER': 'https://lz4.overpass-api.de/api/interpreter',
-            'TIMEOUT': 25,
-            'VALUE': parameters['EntrecomoValorOSM']
+            'INPUT_1': outputs['BaixarDados']['OUTPUT'],
+            'INPUT_2': QgsExpression("'|layername=multipolygons'").evaluate()
         }
-        outputs['ConsultaPorTagsDoOsm'] = processing.run('quickosm:buildqueryextent', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['Poligonos'] = processing.run('native:stringconcatenation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(2)
+        feedback.setCurrentStep(4)
         if feedback.isCanceled():
             return {}
 
@@ -74,7 +98,18 @@ class Saude(QgsProcessingAlgorithm):
         }
         outputs['ConsultaPorTagsDoOsm2'] = processing.run('quickosm:buildqueryextent', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(3)
+        feedback.setCurrentStep(5)
+        if feedback.isCanceled():
+            return {}
+
+        # Pontos
+        alg_params = {
+            'INPUT_1': outputs['BaixarDados']['OUTPUT'],
+            'INPUT_2': QgsExpression("'|layername=points'").evaluate()
+        }
+        outputs['Pontos'] = processing.run('native:stringconcatenation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(6)
         if feedback.isCanceled():
             return {}
 
@@ -87,20 +122,19 @@ class Saude(QgsProcessingAlgorithm):
         }
         outputs['BaixarArquivo2'] = processing.run('native:filedownloader', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(4)
+        feedback.setCurrentStep(7)
         if feedback.isCanceled():
             return {}
 
-        # Baixar dados 
+        # Fixar geometrias_1
         alg_params = {
-            'DATA': '',
-            'METHOD': 0,  # GET
-            'URL': outputs['ConsultaPorTagsDoOsm']['OUTPUT_URL'],
+            'INPUT': outputs['Poligonos']['CONCATENATION'],
+            'METHOD': 1,  # Structure
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
-        outputs['BaixarDados'] = processing.run('native:filedownloader', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['FixarGeometrias_1'] = processing.run('native:fixgeometries', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(5)
+        feedback.setCurrentStep(8)
         if feedback.isCanceled():
             return {}
 
@@ -111,7 +145,7 @@ class Saude(QgsProcessingAlgorithm):
         }
         outputs['Pontos2'] = processing.run('native:stringconcatenation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(6)
+        feedback.setCurrentStep(9)
         if feedback.isCanceled():
             return {}
 
@@ -122,47 +156,13 @@ class Saude(QgsProcessingAlgorithm):
         }
         outputs['Poligonos2'] = processing.run('native:stringconcatenation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(7)
-        if feedback.isCanceled():
-            return {}
-
-        # Poligonos
-        alg_params = {
-            'INPUT_1': outputs['BaixarDados']['OUTPUT'],
-            'INPUT_2': QgsExpression("'|layername=multipolygons'").evaluate()
-        }
-        outputs['Poligonos'] = processing.run('native:stringconcatenation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(8)
-        if feedback.isCanceled():
-            return {}
-
-        # Pontos
-        alg_params = {
-            'INPUT_1': outputs['BaixarDados']['OUTPUT'],
-            'INPUT_2': QgsExpression("'|layername=points'").evaluate()
-        }
-        outputs['Pontos'] = processing.run('native:stringconcatenation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(9)
-        if feedback.isCanceled():
-            return {}
-
-        # Fixar geometrias
-        alg_params = {
-            'INPUT': outputs['Poligonos']['CONCATENATION'],
-            'METHOD': 1,  # Structure
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['FixarGeometrias'] = processing.run('native:fixgeometries', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
         feedback.setCurrentStep(10)
         if feedback.isCanceled():
             return {}
 
         # Calculadora de campo Pt2
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'teste',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
@@ -179,7 +179,7 @@ class Saude(QgsProcessingAlgorithm):
 
         # Calculadora de campo Pt1
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'teste',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
@@ -194,18 +194,6 @@ class Saude(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
-        # Fixar geometrias
-        alg_params = {
-            'INPUT': outputs['Poligonos2']['CONCATENATION'],
-            'METHOD': 1,  # Structure
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['FixarGeometrias'] = processing.run('native:fixgeometries', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(13)
-        if feedback.isCanceled():
-            return {}
-
         # Join_Point
         alg_params = {
             'CRS': 'ProjectCrs',
@@ -214,6 +202,18 @@ class Saude(QgsProcessingAlgorithm):
         }
         outputs['Join_point'] = processing.run('native:mergevectorlayers', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
+        feedback.setCurrentStep(13)
+        if feedback.isCanceled():
+            return {}
+
+        # Fixar geometrias_2
+        alg_params = {
+            'INPUT': outputs['Poligonos2']['CONCATENATION'],
+            'METHOD': 1,  # Structure
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['FixarGeometrias_2'] = processing.run('native:fixgeometries', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
         feedback.setCurrentStep(14)
         if feedback.isCanceled():
             return {}
@@ -221,7 +221,7 @@ class Saude(QgsProcessingAlgorithm):
         # Join_Polygon
         alg_params = {
             'CRS': 'ProjectCrs',
-            'LAYERS': [outputs['FixarGeometrias']['OUTPUT'],outputs['FixarGeometrias']['OUTPUT']],
+            'LAYERS': [outputs['FixarGeometrias_1']['OUTPUT'],outputs['FixarGeometrias_2']['OUTPUT']],
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['Join_polygon'] = processing.run('native:mergevectorlayers', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
@@ -243,7 +243,7 @@ class Saude(QgsProcessingAlgorithm):
 
         # Calculadora de campo_OSM_ID
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'osm_id',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 1,  # Integer (32 bit)
@@ -272,7 +272,7 @@ class Saude(QgsProcessingAlgorithm):
 
         # Calculadora de campo_PT_INICIO
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'PontoInicio',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 1,  # Integer (32 bit)
@@ -317,18 +317,6 @@ class Saude(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
-        # Recortar
-        alg_params = {
-            'INPUT': outputs['Dissolver']['OUTPUT'],
-            'OVERLAY': parameters['definaareadeinteresse2'],
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['Recortar'] = processing.run('native:clip', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(22)
-        if feedback.isCanceled():
-            return {}
-
         # Buffer
         alg_params = {
             'DISSOLVE': False,
@@ -343,7 +331,45 @@ class Saude(QgsProcessingAlgorithm):
         }
         outputs['Buffer'] = processing.run('native:buffer', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
+        feedback.setCurrentStep(22)
+        if feedback.isCanceled():
+            return {}
+
+        # Recortar
+        alg_params = {
+            'INPUT': outputs['Dissolver']['OUTPUT'],
+            'OVERLAY': parameters['definaareadeinteresse2'],
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['Recortar'] = processing.run('native:clip', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
         feedback.setCurrentStep(23)
+        if feedback.isCanceled():
+            return {}
+
+        # Extrair por localização_1
+        alg_params = {
+            'INPUT': outputs['Join_point']['OUTPUT'],
+            'INTERSECT': outputs['Buffer']['OUTPUT'],
+            'PREDICATE': [2],  # disjoint
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['ExtrairPorLocalizao_1'] = processing.run('native:extractbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(24)
+        if feedback.isCanceled():
+            return {}
+
+        # Extrair por localização_3
+        alg_params = {
+            'INPUT': outputs['Recortar']['OUTPUT'],
+            'INTERSECT': parameters['entrecomacamadaderefernciadotipopontoasertestada'],
+            'PREDICATE': [2],  # disjoint
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['ExtrairPorLocalizao_3'] = processing.run('native:extractbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(25)
         if feedback.isCanceled():
             return {}
 
@@ -360,33 +386,44 @@ class Saude(QgsProcessingAlgorithm):
         }
         outputs['UnirAtributosPelaPosio'] = processing.run('qgis:joinattributesbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(24)
-        if feedback.isCanceled():
-            return {}
-
-        # Extrair por localização
-        alg_params = {
-            'INPUT': outputs['Recortar']['OUTPUT'],
-            'INTERSECT': parameters['entrecomacamadaderefernciadotipopontoasertestada'],
-            'PREDICATE': 2,  # disjoint
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['ExtrairPorLocalizao'] = processing.run('native:extractbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(25)
-        if feedback.isCanceled():
-            return {}
-
-        # Extrair por localização
-        alg_params = {
-            'INPUT': outputs['Join_point']['OUTPUT'],
-            'INTERSECT': outputs['Buffer']['OUTPUT'],
-            'PREDICATE': 2,  # disjoint
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['ExtrairPorLocalizao'] = processing.run('native:extractbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
         feedback.setCurrentStep(26)
+        if feedback.isCanceled():
+            return {}
+
+        # Recortar (2)
+        alg_params = {
+            'INPUT': outputs['ExtrairPorLocalizao_1']['OUTPUT'],
+            'OVERLAY': parameters['definaareadeinteresse2'],
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['Recortar2'] = processing.run('native:clip', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(27)
+        if feedback.isCanceled():
+            return {}
+
+        # Centroides
+        alg_params = {
+            'ALL_PARTS': False,
+            'INPUT': outputs['ExtrairPorLocalizao_3']['OUTPUT'],
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['Centroides'] = processing.run('native:centroids', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(28)
+        if feedback.isCanceled():
+            return {}
+
+        # Extrair por localização_2
+        alg_params = {
+            'INPUT': outputs['Recortar2']['OUTPUT'],
+            'INTERSECT': outputs['Buffer2']['OUTPUT'],
+            'PREDICATE': [2],  # disjoint
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['ExtrairPorLocalizao_2'] = processing.run('native:extractbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(29)
         if feedback.isCanceled():
             return {}
 
@@ -398,148 +435,24 @@ class Saude(QgsProcessingAlgorithm):
         }
         outputs['DescartarCampos1'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(27)
-        if feedback.isCanceled():
-            return {}
-
-        # Descartar campo(s) (2)
-        alg_params = {
-            'COLUMN': 'path',
-            'INPUT': outputs['DescartarCampos1']['OUTPUT'],
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['DescartarCampos2'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(28)
-        if feedback.isCanceled():
-            return {}
-
-        # Centroides
-        alg_params = {
-            'ALL_PARTS': False,
-            'INPUT': outputs['ExtrairPorLocalizao']['OUTPUT'],
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['Centroides'] = processing.run('native:centroids', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(29)
-        if feedback.isCanceled():
-            return {}
-
-        # Recortar (2)
-        alg_params = {
-            'INPUT': outputs['ExtrairPorLocalizao']['OUTPUT'],
-            'OVERLAY': parameters['definaareadeinteresse2'],
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['Recortar2'] = processing.run('native:clip', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
         feedback.setCurrentStep(30)
-        if feedback.isCanceled():
-            return {}
-
-        # Descartar campo(s) (3)
-        alg_params = {
-            'COLUMN': 'layer',
-            'INPUT': outputs['DescartarCampos2']['OUTPUT'],
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['DescartarCampos3'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(31)
-        if feedback.isCanceled():
-            return {}
-
-        # Descartar campo(s) (4)
-        alg_params = {
-            'COLUMN': 'other_tags',
-            'INPUT': outputs['DescartarCampos3']['OUTPUT'],
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['DescartarCampos4'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(32)
-        if feedback.isCanceled():
-            return {}
-
-        # Calculadora de campo NOME_OSM (1)
-        alg_params = {
-            'FIELD_LENGTH': 5,
-            'FIELD_NAME': 'nome_osm',
-            'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 2,  # Text (string)
-            'FORMULA': 'if(  "nome"  IS NULL  AND  "nome_no_osm" IS NOT NULL,  \'Sim\' ,\'Não\')',
-            'INPUT': outputs['DescartarCampos4']['OUTPUT'],
-            'NEW_FIELD': True,
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['CalculadoraDeCampoNome_osm1'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(33)
-        if feedback.isCanceled():
-            return {}
-
-        # Extrair por localização
-        alg_params = {
-            'INPUT': outputs['Recortar2']['OUTPUT'],
-            'INTERSECT': outputs['Buffer2']['OUTPUT'],
-            'PREDICATE': 2,  # disjoint
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['ExtrairPorLocalizao'] = processing.run('native:extractbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(34)
-        if feedback.isCanceled():
-            return {}
-
-        # Calculadora de campo GEOM_OSM (1)
-        alg_params = {
-            'FIELD_LENGTH': 5,
-            'FIELD_NAME': 'geometria_osm',
-            'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 2,  # Text (string)
-            'FORMULA': "'Não'",
-            'INPUT': outputs['CalculadoraDeCampoNome_osm1']['OUTPUT'],
-            'NEW_FIELD': True,
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['CalculadoraDeCampoGeom_osm1'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(35)
         if feedback.isCanceled():
             return {}
 
         # Calculadora de campo_PT_INICIO(2)
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'PontoInicio',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 1,  # Integer (32 bit)
             'FORMULA': 'strpos(  "other_tags" , (\'"name"=>"\'))+9',
-            'INPUT': outputs['ExtrairPorLocalizao']['OUTPUT'],
+            'INPUT': outputs['ExtrairPorLocalizao_2']['OUTPUT'],
             'NEW_FIELD': True,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['CalculadoraDeCampo_pt_inicio2'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(36)
-        if feedback.isCanceled():
-            return {}
-
-        # Calculadora de campo
-        alg_params = {
-            'FIELD_LENGTH': 255,
-            'FIELD_NAME': 'nome',
-            'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 1,  # Integer (32 bit)
-            'FORMULA': 'if(  "nome"  IS NULL  AND  "nome_no_osm" IS NOT NULL,  "nome_no_osm" ,  if(  "nome"   IS NOT NULL, "nome" ,NULL))',
-            'INPUT': outputs['CalculadoraDeCampoGeom_osm1']['OUTPUT'],
-            'NEW_FIELD': False,
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['CalculadoraDeCampo'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(37)
+        feedback.setCurrentStep(31)
         if feedback.isCanceled():
             return {}
 
@@ -556,7 +469,19 @@ class Saude(QgsProcessingAlgorithm):
         }
         outputs['CalculadoraDeCampo_nome2'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(38)
+        feedback.setCurrentStep(32)
+        if feedback.isCanceled():
+            return {}
+
+        # Descartar campo(s) (2)
+        alg_params = {
+            'COLUMN': 'path',
+            'INPUT': outputs['DescartarCampos1']['OUTPUT'],
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['DescartarCampos2'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(33)
         if feedback.isCanceled():
             return {}
 
@@ -568,7 +493,19 @@ class Saude(QgsProcessingAlgorithm):
         }
         outputs['MesclarCamadasVetoriais'] = processing.run('native:mergevectorlayers', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(39)
+        feedback.setCurrentStep(34)
+        if feedback.isCanceled():
+            return {}
+
+        # Descartar campo(s) (3)
+        alg_params = {
+            'COLUMN': 'layer',
+            'INPUT': outputs['DescartarCampos2']['OUTPUT'],
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['DescartarCampos3'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(35)
         if feedback.isCanceled():
             return {}
 
@@ -580,7 +517,53 @@ class Saude(QgsProcessingAlgorithm):
         }
         outputs['DescartarCampos5'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(40)
+        feedback.setCurrentStep(36)
+        if feedback.isCanceled():
+            return {}
+
+        # Descartar campo(s) (4)
+        alg_params = {
+            'COLUMN': 'other_tags',
+            'INPUT': outputs['DescartarCampos3']['OUTPUT'],
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['DescartarCampos4'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(37)
+        if feedback.isCanceled():
+            return {}
+
+        # Calculadora de campo NOME_OSM (1)
+        alg_params = {
+            'FIELD_LENGTH': 255,
+            'FIELD_NAME': 'nome_osm',
+            # 'FIELD_PRECISION': 3,
+            'FIELD_TYPE': 2,  # Text (string)
+            'FORMULA': 'if(  "nome"  IS NULL  AND  "nome_no_osm" IS NOT NULL,  \'Sim\' ,\'Não\')',
+            'INPUT': outputs['DescartarCampos4']['OUTPUT'],
+            'NEW_FIELD': True,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['CalculadoraDeCampoNome_osm1'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(38)
+        if feedback.isCanceled():
+            return {}
+
+        # Calculadora de campo GEOM_OSM (1)
+        alg_params = {
+            'FIELD_LENGTH': 255,
+            'FIELD_NAME': 'geometria_osm',
+            'FIELD_PRECISION': 3,
+            'FIELD_TYPE': 2,  # Text (string)
+            'FORMULA': "'Não'",
+            'INPUT': outputs['CalculadoraDeCampoNome_osm1']['OUTPUT'],
+            'NEW_FIELD': True,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['CalculadoraDeCampoGeom_osm1'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(39)
         if feedback.isCanceled():
             return {}
 
@@ -591,6 +574,22 @@ class Saude(QgsProcessingAlgorithm):
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['DescartarCampos6'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(40)
+        if feedback.isCanceled():
+            return {}
+
+        # Calculadora de campo_2
+        alg_params = {
+            'FIELD_LENGTH': 255,
+            'FIELD_NAME': 'nome',
+            'FIELD_PRECISION': 3,
+            'FIELD_TYPE': 2,  # Integer (32 bit)
+            'FORMULA': 'if(  "nome"  IS NULL  AND  "nome_no_osm" IS NOT NULL,  "nome_no_osm" ,  if(  "nome"   IS NOT NULL, "nome" ,NULL))',
+            'INPUT': outputs['CalculadoraDeCampoGeom_osm1']['OUTPUT'],
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['CalculadoraDeCampo_2'] = processing.run('native:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(41)
         if feedback.isCanceled():
@@ -622,7 +621,7 @@ class Saude(QgsProcessingAlgorithm):
 
         # Calculadora de campo NOME_OSM (2)
         alg_params = {
-            'FIELD_LENGTH': 5,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'nome_osm',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
@@ -639,7 +638,7 @@ class Saude(QgsProcessingAlgorithm):
 
         # Calculadora de campo GEOM_OSM (2)
         alg_params = {
-            'FIELD_LENGTH': 5,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'geometria_osm',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
@@ -654,7 +653,7 @@ class Saude(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
-        # Calculadora de campo
+        # Calculadora de campo_1
         alg_params = {
             'FIELD_LENGTH': 255,
             'FIELD_NAME': 'nome',
@@ -665,7 +664,7 @@ class Saude(QgsProcessingAlgorithm):
             'NEW_FIELD': True,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
-        outputs['CalculadoraDeCampo'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['CalculadoraDeCampo_1'] = processing.run('native:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(46)
         if feedback.isCanceled():
@@ -674,7 +673,7 @@ class Saude(QgsProcessingAlgorithm):
         # Mesclar camadas vetoriais
         alg_params = {
             'CRS': 'ProjectCrs',
-            'LAYERS': [outputs['CalculadoraDeCampo']['OUTPUT'],outputs['CalculadoraDeCampo']['OUTPUT']],
+            'LAYERS': [outputs['CalculadoraDeCampo_2']['OUTPUT'],outputs['CalculadoraDeCampo_1']['OUTPUT']],
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['MesclarCamadasVetoriais'] = processing.run('native:mergevectorlayers', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
@@ -721,7 +720,7 @@ class Saude(QgsProcessingAlgorithm):
 
         # Editar campos
         alg_params = {
-            'FIELDS_MAPPING': [{'expression': '"id"','length': -1,'name': 'id','precision': 0,'type': 2},{'expression': '"nome"','length': 150,'name': 'nome','precision': -1,'type': 10},{'expression': '"geometriaaproximada"','length': -1,'name': 'geometriaaproximada','precision': 0,'type': 2},{'expression': '"operacional"','length': -1,'name': 'operacional','precision': 0,'type': 2},{'expression': '"situacaofisica"','length': -1,'name': 'situacaofisica','precision': 0,'type': 2},{'expression': '"matconstr"','length': -1,'name': 'matconstr','precision': 0,'type': 2},{'expression': '"alturaaproximada"','length': -1,'name': 'alturaaproximada','precision': -1,'type': 6},{'expression': '"turistica"','length': -1,'name': 'turistica','precision': 0,'type': 2},{'expression': '"cultura"','length': -1,'name': 'cultura','precision': 0,'type': 2},{'expression': '"administracao"','length': -1,'name': 'administracao','precision': 0,'type': 2},{'expression': '"classeativecon"','length': -1,'name': 'classeativecon','precision': 0,'type': 10},{'expression': '"divisaoativecon"','length': -1,'name': 'divisaoativecon','precision': 0,'type': 10},{'expression': '"grupoativecon"','length': -1,'name': 'grupoativecon','precision': 0,'type': 10},{'expression': '"proprioadm"','length': -1,'name': 'proprioadm','precision': 0,'type': 2},{'expression': '"cep"','length': 80,'name': 'cep','precision': -1,'type': 10},{'expression': '"pais"','length': 80,'name': 'pais','precision': -1,'type': 10},{'expression': '"unidadefederacao"','length': 2,'name': 'unidadefederacao','precision': -1,'type': 10},{'expression': '"municipio"','length': 80,'name': 'municipio','precision': -1,'type': 10},{'expression': '"bairro"','length': 80,'name': 'bairro','precision': -1,'type': 10},{'expression': '"logradouro"','length': 200,'name': 'logradouro','precision': -1,'type': 10},{'expression': '"bloco"','length': 80,'name': 'bloco','precision': -1,'type': 10},{'expression': '"numerosequencial"','length': -1,'name': 'numerosequencial','precision': 0,'type': 2},{'expression': '"numerometrico"','length': -1,'name': 'numerometrico','precision': 0,'type': 2},{'expression': '"numeropavimentos"','length': -1,'name': 'numeropavimentos','precision': 0,'type': 2},{'expression': '"nivelatencao"','length': -1,'name': 'nivelatencao','precision': 0,'type': 2},{'expression': '"tx_comentario_producao"','length': -1,'name': 'tx_comentario_producao','precision': -1,'type': 10},{'expression': '"id_nomebngb"','length': -1,'name': 'id_nomebngb','precision': 0,'type': 2},{'expression': '"id_produtor"','length': -1,'name': 'id_produtor','precision': 0,'type': 2},{'expression': '"id_elementoprodutor"','length': -1,'name': 'id_elementoprodutor','precision': 0,'type': 2},{'expression': '"id_antigo"','length': -1,'name': 'id_antigo','precision': 0,'type': 2},{'expression': '"cd_situacao_do_objeto"','length': 2,'name': 'cd_situacao_do_objeto','precision': -1,'type': 10},{'expression': '"id_usuario"','length': -1,'name': 'id_usuario','precision': 0,'type': 2},{'expression': '"dt_atualizacao"','length': -1,'name': 'dt_atualizacao','precision': -1,'type': 16},{'expression': '"tx_geocodigo_municipio"','length': -1,'name': 'tx_geocodigo_municipio','precision': -1,'type': 10},{'expression': '"id_assentamento_precario"','length': -1,'name': 'id_assentamento_precario','precision': 0,'type': 2},{'expression': '"id_complexo_habitacional"','length': -1,'name': 'id_complexo_habitacional','precision': 0,'type': 2},{'expression': '"id_condominio"','length': -1,'name': 'id_condominio','precision': 0,'type': 2},{'expression': '"id_conjunto_habitacional"','length': -1,'name': 'id_conjunto_habitacional','precision': 0,'type': 2},{'expression': '"nomeabrev"','length': 50,'name': 'nomeabrev','precision': -1,'type': 10},{'expression': '"situacaonome"','length': -1,'name': 'situacaonome','precision': 0,'type': 2},{'expression': '"insumonome"','length': -1,'name': 'insumonome','precision': -1,'type': 10},{'expression': '"situacaoquantoaolimite"','length': -1,'name': 'situacaoquantoaolimite','precision': 0,'type': 2},{'expression': '"observacaong"','length': -1,'name': 'observacaong','precision': -1,'type': 10},{'expression': '"validacaobngb"','length': 1,'name': 'validacaobngb','precision': -1,'type': 10},{'expression': '"compatibilidadeng"','length': -1,'name': 'compatibilidadeng','precision': -1,'type': 10},{'expression': '"osm_id"','length': 0,'name': 'osm_id','precision': 0,'type': 10},{'expression': '"nome_no_osm"','length': 255,'name': 'nome_no_osm','precision': 3,'type': 10},{'expression': '"nome_osm"','length': 5,'name': 'nome_osm','precision': 3,'type': 10},{'expression': '"geometria_osm"','length': 5,'name': 'geometria_osm','precision': 3,'type': 10}],
+            'FIELDS_MAPPING': [{'expression': '"id"','length': 255,'name': 'id','precision': -1,'type': 2},{'expression': '"nome"','length': 150,'name': 'nome','precision': -1,'type': 10},{'expression': '"geometriaaproximada"','length': 255,'name': 'geometriaaproximada','precision': -1,'type': 2},{'expression': '"operacional"','length': 255,'name': 'operacional','precision': -1,'type': 2},{'expression': '"situacaofisica"','length': 255,'name': 'situacaofisica','precision': -1,'type': 2},{'expression': '"matconstr"','length': 255,'name': 'matconstr','precision': -1,'type': 10},{'expression': '"alturaaproximada"','length': 255,'name': 'alturaaproximada','precision': -1,'type': 6},{'expression': '"turistica"','length': 255,'name': 'turistica','precision': -1,'type': 2},{'expression': '"cultura"','length': 255,'name': 'cultura','precision': -1,'type': 2},{'expression': '"administracao"','length': 255,'name': 'administracao','precision': -1,'type': 2},{'expression': '"classeativecon"','length': 255,'name': 'classeativecon','precision': -1,'type': 10},{'expression': '"divisaoativecon"','length': 255,'name': 'divisaoativecon','precision': -1,'type': 10},{'expression': '"grupoativecon"','length': 255,'name': 'grupoativecon','precision': -1,'type': 10},{'expression': '"proprioadm"','length': 255,'name': 'proprioadm','precision': -1,'type': 2},{'expression': '"cep"','length': 80,'name': 'cep','precision': -1,'type': 10},{'expression': '"pais"','length': 80,'name': 'pais','precision': -1,'type': 10},{'expression': '"unidadefederacao"','length': 255,'name': 'unidadefederacao','precision': -1,'type': 10},{'expression': '"municipio"','length': 80,'name': 'municipio','precision': -1,'type': 10},{'expression': '"bairro"','length': 80,'name': 'bairro','precision': -1,'type': 10},{'expression': '"logradouro"','length': 200,'name': 'logradouro','precision': -1,'type': 10},{'expression': '"bloco"','length': 80,'name': 'bloco','precision': -1,'type': 10},{'expression': '"numerosequencial"','length': 255,'name': 'numerosequencial','precision': -1,'type': 2},{'expression': '"numerometrico"','length': 255,'name': 'numerometrico','precision': -1,'type': 2},{'expression': '"numeropavimentos"','length': 255,'name': 'numeropavimentos','precision': -1,'type': 2},{'expression': '"nivelatencao"','length': 255,'name': 'nivelatencao','precision': -1,'type': 2},{'expression': '"tx_comentario_producao"','length': 255,'name': 'tx_comentario_producao','precision': -1,'type': 10},{'expression': '"id_nomebngb"','length': 255,'name': 'id_nomebngb','precision': -1,'type': 2},{'expression': '"id_produtor"','length': 255,'name': 'id_produtor','precision': -1,'type': 2},{'expression': '"id_elementoprodutor"','length': 255,'name': 'id_elementoprodutor','precision': -1,'type': 2},{'expression': '"id_antigo"','length': 255,'name': 'id_antigo','precision': -1,'type': 2},{'expression': '"cd_situacao_do_objeto"','length': 2,'name': 'cd_situacao_do_objeto','precision': -1,'type': 10},{'expression': '"id_usuario"','length': 255,'name': 'id_usuario','precision': -1,'type': 2},{'expression': '"dt_atualizacao"','length': 255,'name': 'dt_atualizacao','precision': -1,'type': 16},{'expression': '"tx_geocodigo_municipio"','length': 255,'name': 'tx_geocodigo_municipio','precision': -1,'type': 10},{'expression': '"id_assentamento_precario"','length': 255,'name': 'id_assentamento_precario','precision': -1,'type': 2},{'expression': '"id_complexo_habitacional"','length': 255,'name': 'id_complexo_habitacional','precision': -1,'type': 2},{'expression': '"id_condominio"','length': 255,'name': 'id_condominio','precision': -1,'type': 2},{'expression': '"id_conjunto_habitacional"','length': 255,'name': 'id_conjunto_habitacional','precision': -1,'type': 2},{'expression': '"nomeabrev"','length': 50,'name': 'nomeabrev','precision': -1,'type': 10},{'expression': '"situacaonome"','length': 255,'name': 'situacaonome','precision': -1,'type': 2},{'expression': '"insumonome"','length': 255,'name': 'insumonome','precision': -1,'type': 10},{'expression': '"situacaoquantoaolimite"','length': 255,'name': 'situacaoquantoaolimite','precision': -1,'type': 2},{'expression': '"observacaong"','length': 255,'name': 'observacaong','precision': -1,'type': 10},{'expression': '"validacaobngb"','length': 1,'name': 'validacaobngb','precision': -1,'type': 10},{'expression': '"compatibilidadeng"','length': 255,'name': 'compatibilidadeng','precision': -1,'type': 10},{'expression': '"osm_id"','length': 0,'name': 'osm_id','precision': -1,'type': 10},{'expression': '"nome_no_osm"','length': 255,'name': 'nome_no_osm','precision': 3,'type': 10},{'expression': '"nome_osm"','length': 5,'name': 'nome_osm','precision': 3,'type': 10},{'expression': '"geometria_osm"','length': 5,'name': 'geometria_osm','precision': 3,'type': 10}],
             'INPUT': outputs['DescartarCampos11']['OUTPUT'],
             'OUTPUT': parameters['Saude_p']
         }
@@ -730,10 +729,10 @@ class Saude(QgsProcessingAlgorithm):
         return results
 
     def name(self):
-        return 'SAUDE'
+        return 'Saude'
 
     def displayName(self):
-        return 'SAUDE'
+        return 'Saude'
 
     def group(self):
         return 'IBGE'

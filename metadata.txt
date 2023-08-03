@@ -4,7 +4,7 @@
 
 [general]
 name=osm2topomap
-qgisMinimumVersion=3.16
+qgisMinimumVersion=3.32
 description=A plugin intended to intermediate the process of using OSM data for official (authoritative) Topographc Maps, or rather, databases
 version=0.1
 author=Leonardo Scharth; Kauê Vestena; Silvana Camboim
@@ -37,7 +37,7 @@ deprecated=False
 # Since QGIS 3.8, a comma separated list of plugins to be installed
 # (or upgraded) can be specified.
 # Check the documentation for more information.
-# plugin_dependencies=
+plugin_dependencies=QuickOSM
 
 Category of the plugin: Raster, Vector, Database or Web
 # category=

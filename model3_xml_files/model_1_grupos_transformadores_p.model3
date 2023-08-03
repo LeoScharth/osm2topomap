@@ -274,7 +274,7 @@
         <Option type="bool" value="false" name="outputs_collapsed"/>
         <Option type="bool" value="false" name="parameters_collapsed"/>
       </Option>
-      <Option type="QString" value="Mesclar camadas vetoriais" name="component_description"/>
+      <Option type="QString" value="Mesclar camadas vetoriais_1" name="component_description"/>
       <Option type="double" value="30" name="component_height"/>
       <Option type="double" value="1004.9333333333334" name="component_pos_x"/>
       <Option type="double" value="1297.8111111111114" name="component_pos_y"/>
@@ -1289,7 +1289,7 @@
         <Option type="bool" value="false" name="outputs_collapsed"/>
         <Option type="bool" value="false" name="parameters_collapsed"/>
       </Option>
-      <Option type="QString" value="Calculadora de campo" name="component_description"/>
+      <Option type="QString" value="Calculadora de campo_1" name="component_description"/>
       <Option type="double" value="30" name="component_height"/>
       <Option type="double" value="1207.1222222222218" name="component_pos_x"/>
       <Option type="double" value="2241.88888888889" name="component_pos_y"/>

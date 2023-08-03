@@ -3,6 +3,8 @@ import os,re, json
 models_path = 'model3_xml_files'
 
 outpath = 'test/sanity_check.json'
+outpath_filtered = 'test/sanity_check_filtered.json'
+
 
 def find_between_strings(text, start_string, end_string):
     pattern = re.compile(f"{re.escape(start_string)}(.*?){re.escape(end_string)}")
@@ -36,6 +38,15 @@ for filename in os.listdir(models_path):
                     else:
                         occurrences[filename][interest_string] += 1
 
+filtered = {}
+# keeping only bigger than 1:
+for key in occurrences:
+    filtered[key] = {}
+    for keyword in occurrences[key]:
+        if occurrences[key][keyword] > 1:
+            filtered[key][keyword] = occurrences[key][keyword]
+
 dump_dict_to_json(occurrences,outpath)
+dump_dict_to_json(filtered,outpath_filtered)
 
                     
