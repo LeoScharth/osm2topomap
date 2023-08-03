@@ -213,6 +213,19 @@ class Quadra(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
+        # Extrair por localização
+        alg_params = {
+            'INPUT': outputs['Recortar']['OUTPUT'],
+            'INTERSECT': parameters['entrecomacamadaderefernciadotipopontoasertestada'],
+            'PREDICATE': 2,  # disjoint
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['ExtrairPorLocalizao'] = processing.run('native:extractbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(14)
+        if feedback.isCanceled():
+            return {}
+
         # Unir atributos pela posição
         alg_params = {
             'DISCARD_NONMATCHING': False,
@@ -226,44 +239,7 @@ class Quadra(QgsProcessingAlgorithm):
         }
         outputs['UnirAtributosPelaPosio'] = processing.run('qgis:joinattributesbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(14)
-        if feedback.isCanceled():
-            return {}
-
-        # Extrair por localização
-        alg_params = {
-            'INPUT': outputs['Recortar']['OUTPUT'],
-            'INTERSECT': parameters['entrecomacamadaderefernciadotipopontoasertestada'],
-            'PREDICATE': 2,  # disjoint
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['ExtrairPorLocalizao'] = processing.run('native:extractbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
         feedback.setCurrentStep(15)
-        if feedback.isCanceled():
-            return {}
-
-        # Descartar campo(s) (1)
-        alg_params = {
-            'COLUMN': 'PontoInicio',
-            'INPUT': outputs['UnirAtributosPelaPosio']['OUTPUT'],
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['DescartarCampos1'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(16)
-        if feedback.isCanceled():
-            return {}
-
-        # Descartar campo(s) (2)
-        alg_params = {
-            'COLUMN': 'path',
-            'INPUT': outputs['DescartarCampos1']['OUTPUT'],
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['DescartarCampos2'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(17)
         if feedback.isCanceled():
             return {}
 
@@ -275,31 +251,7 @@ class Quadra(QgsProcessingAlgorithm):
         }
         outputs['Centroides'] = processing.run('native:centroids', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(18)
-        if feedback.isCanceled():
-            return {}
-
-        # Descartar campo(s) (3)
-        alg_params = {
-            'COLUMN': 'layer',
-            'INPUT': outputs['DescartarCampos2']['OUTPUT'],
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['DescartarCampos3'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(19)
-        if feedback.isCanceled():
-            return {}
-
-        # Descartar campo(s) (4)
-        alg_params = {
-            'COLUMN': 'other_tags',
-            'INPUT': outputs['DescartarCampos3']['OUTPUT'],
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['DescartarCampos4'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(20)
+        feedback.setCurrentStep(16)
         if feedback.isCanceled():
             return {}
 
@@ -311,41 +263,19 @@ class Quadra(QgsProcessingAlgorithm):
         }
         outputs['DescartarCampos5'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(21)
+        feedback.setCurrentStep(17)
         if feedback.isCanceled():
             return {}
 
-        # Calculadora de campo NOME_OSM (1)
+        # Descartar campo(s) (1)
         alg_params = {
-            'FIELD_LENGTH': 5,
-            'FIELD_NAME': 'nome_osm',
-            'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 2,  # Text (string)
-            'FORMULA': 'if(  "nome"  IS NULL  AND  "nome_no_osm" IS NOT NULL,  \'Sim\' ,\'Não\')',
-            'INPUT': outputs['DescartarCampos4']['OUTPUT'],
-            'NEW_FIELD': True,
+            'COLUMN': 'PontoInicio',
+            'INPUT': outputs['UnirAtributosPelaPosio']['OUTPUT'],
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
-        outputs['CalculadoraDeCampoNome_osm1'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['DescartarCampos1'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(22)
-        if feedback.isCanceled():
-            return {}
-
-        # Calculadora de campo GEOM_OSM (1)
-        alg_params = {
-            'FIELD_LENGTH': 5,
-            'FIELD_NAME': 'geometria_osm',
-            'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 2,  # Text (string)
-            'FORMULA': "'Não'",
-            'INPUT': outputs['CalculadoraDeCampoNome_osm1']['OUTPUT'],
-            'NEW_FIELD': True,
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['CalculadoraDeCampoGeom_osm1'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(23)
+        feedback.setCurrentStep(18)
         if feedback.isCanceled():
             return {}
 
@@ -357,7 +287,31 @@ class Quadra(QgsProcessingAlgorithm):
         }
         outputs['DescartarCampos6'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(24)
+        feedback.setCurrentStep(19)
+        if feedback.isCanceled():
+            return {}
+
+        # Descartar campo(s) (2)
+        alg_params = {
+            'COLUMN': 'path',
+            'INPUT': outputs['DescartarCampos1']['OUTPUT'],
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['DescartarCampos2'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(20)
+        if feedback.isCanceled():
+            return {}
+
+        # Descartar campo(s) (3)
+        alg_params = {
+            'COLUMN': 'layer',
+            'INPUT': outputs['DescartarCampos2']['OUTPUT'],
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['DescartarCampos3'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(21)
         if feedback.isCanceled():
             return {}
 
@@ -369,41 +323,19 @@ class Quadra(QgsProcessingAlgorithm):
         }
         outputs['DescartarCampos7'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(25)
+        feedback.setCurrentStep(22)
         if feedback.isCanceled():
             return {}
 
-        # Calculadora de campo
+        # Descartar campo(s) (4)
         alg_params = {
-            'FIELD_LENGTH': 255,
-            'FIELD_NAME': 'nome',
-            'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 1,  # Integer (32 bit)
-            'FORMULA': 'if(  "nome"  IS NULL  AND  "nome_no_osm" IS NOT NULL,  "nome_no_osm" ,  if(  "nome"   IS NOT NULL, "nome" ,NULL))',
-            'INPUT': outputs['CalculadoraDeCampoGeom_osm1']['OUTPUT'],
-            'NEW_FIELD': False,
+            'COLUMN': 'other_tags',
+            'INPUT': outputs['DescartarCampos3']['OUTPUT'],
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
-        outputs['CalculadoraDeCampo'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['DescartarCampos4'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(26)
-        if feedback.isCanceled():
-            return {}
-
-        # Calculadora de campo Aux (2)
-        alg_params = {
-            'FIELD_LENGTH': 5,
-            'FIELD_NAME': 'tipo_c_q_osm',
-            'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 2,  # Text (string)
-            'FORMULA': 'if(  "tipocampoquadra"  = \'95\' AND  "sport_osm" IS NOT NULL OR  "tipocampoquadra" = \'Desconhecido\' AND  "sport_osm" IS NOT NULL ,  \'Sim\' ,  \'Não\')',
-            'INPUT': outputs['CalculadoraDeCampo']['OUTPUT'],
-            'NEW_FIELD': True,
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['CalculadoraDeCampoAux2'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(27)
+        feedback.setCurrentStep(23)
         if feedback.isCanceled():
             return {}
 
@@ -415,13 +347,64 @@ class Quadra(QgsProcessingAlgorithm):
         }
         outputs['DescartarCampos8'] = processing.run('qgis:deletecolumn', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(28)
+        feedback.setCurrentStep(24)
+        if feedback.isCanceled():
+            return {}
+
+        # Calculadora de campo NOME_OSM (1)
+        alg_params = {
+            'FIELD_LENGTH': 255,
+            'FIELD_NAME': 'nome_osm',
+            'FIELD_PRECISION': 3,
+            'FIELD_TYPE': 2,  # Text (string)
+            'FORMULA': 'if(  "nome"  IS NULL  AND  "nome_no_osm" IS NOT NULL,  \'Sim\' ,\'Não\')',
+            'INPUT': outputs['DescartarCampos4']['OUTPUT'],
+            'NEW_FIELD': True,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['CalculadoraDeCampoNome_osm1'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(25)
+        if feedback.isCanceled():
+            return {}
+
+        # Calculadora de campo GEOM_OSM (1)
+        alg_params = {
+            'FIELD_LENGTH': 255,
+            'FIELD_NAME': 'geometria_osm',
+            'FIELD_PRECISION': 3,
+            'FIELD_TYPE': 2,  # Text (string)
+            'FORMULA': "'Não'",
+            'INPUT': outputs['CalculadoraDeCampoNome_osm1']['OUTPUT'],
+            'NEW_FIELD': True,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['CalculadoraDeCampoGeom_osm1'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(26)
+        if feedback.isCanceled():
+            return {}
+
+        # Calculadora de campo_2
+        alg_params = {
+            'FIELD_LENGTH': 255,
+            'FIELD_NAME': 'nome',
+            'FIELD_PRECISION': 3,
+            'FIELD_TYPE': 1,  # Integer (32 bit)
+            'FORMULA': 'if(  "nome"  IS NULL  AND  "nome_no_osm" IS NOT NULL,  "nome_no_osm" ,  if(  "nome"   IS NOT NULL, "nome" ,NULL))',
+            'INPUT': outputs['CalculadoraDeCampoGeom_osm1']['OUTPUT'],
+            'NEW_FIELD': False,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['CalculadoraDeCampo_2'] = processing.run('native:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(27)
         if feedback.isCanceled():
             return {}
 
         # Calculadora de campo NOME_OSM (2)
         alg_params = {
-            'FIELD_LENGTH': 5,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'nome_osm',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
@@ -431,6 +414,23 @@ class Quadra(QgsProcessingAlgorithm):
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['CalculadoraDeCampoNome_osm2'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(28)
+        if feedback.isCanceled():
+            return {}
+
+        # Calculadora de campo Aux (2)
+        alg_params = {
+            'FIELD_LENGTH': 255,
+            'FIELD_NAME': 'tipo_c_q_osm',
+            'FIELD_PRECISION': 3,
+            'FIELD_TYPE': 2,  # Text (string)
+            'FORMULA': 'if(  "tipocampoquadra"  = \'95\' AND  "sport_osm" IS NOT NULL OR  "tipocampoquadra" = \'Desconhecido\' AND  "sport_osm" IS NOT NULL ,  \'Sim\' ,  \'Não\')',
+            'INPUT': outputs['CalculadoraDeCampo_2']['OUTPUT'],
+            'NEW_FIELD': True,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['CalculadoraDeCampoAux2'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(29)
         if feedback.isCanceled():
@@ -455,7 +455,7 @@ class Quadra(QgsProcessingAlgorithm):
 
         # Calculadora de campo GEOM_OSM (2)
         alg_params = {
-            'FIELD_LENGTH': 5,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'geometria_osm',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
@@ -470,7 +470,7 @@ class Quadra(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
-        # Calculadora de campo
+        # Calculadora de campo_1
         alg_params = {
             'FIELD_LENGTH': 255,
             'FIELD_NAME': 'nome',
@@ -478,10 +478,9 @@ class Quadra(QgsProcessingAlgorithm):
             'FIELD_TYPE': 2,  # Text (string)
             'FORMULA': '"nome_no_osm"',
             'INPUT': outputs['CalculadoraDeCampoGeom_osm2']['OUTPUT'],
-            'NEW_FIELD': True,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
-        outputs['CalculadoraDeCampo'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['CalculadoraDeCampo_1'] = processing.run('native:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(32)
         if feedback.isCanceled():
@@ -489,12 +488,12 @@ class Quadra(QgsProcessingAlgorithm):
 
         # Calculadora de campo Aux (1)
         alg_params = {
-            'FIELD_LENGTH': 5,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'tipo_c_q_osm',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
             'FORMULA': 'if ("sport_osm" IS NOT NULL, \'Sim\',\'Não\')',
-            'INPUT': outputs['CalculadoraDeCampo']['OUTPUT'],
+            'INPUT': outputs['CalculadoraDeCampo_1']['OUTPUT'],
             'NEW_FIELD': True,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
