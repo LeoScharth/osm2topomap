@@ -161,3 +161,7 @@ cython_debug/
 /bkp
 /tests
 tests.py
+
+# geopagkace cache:
+*.gpkg-shm
+*.gpkg-wal

@@ -33,7 +33,7 @@ class Policia_rodoviaria(QgsProcessingAlgorithm):
 
         # Calculadora de campo
         alg_params = {
-            'FIELD_LENGTH': 5,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'geometria_osm',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
@@ -82,7 +82,7 @@ class Policia_rodoviaria(QgsProcessingAlgorithm):
 
         # Calculadora de campo
         alg_params = {
-            'FIELD_LENGTH': 5,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'nome_osm',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
@@ -148,7 +148,7 @@ class Policia_rodoviaria(QgsProcessingAlgorithm):
 
         # Calculadora de campo_PT_INICIO(2)
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'PontoInicio',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 1,  # Integer (32 bit)
@@ -230,7 +230,7 @@ class Policia_rodoviaria(QgsProcessingAlgorithm):
 
         # Calculadora de campo NOME_OSM (1)
         alg_params = {
-            'FIELD_LENGTH': 5,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'nome_osm',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
@@ -247,7 +247,7 @@ class Policia_rodoviaria(QgsProcessingAlgorithm):
 
         # Calculadora de campo GEOM_OSM (1)
         alg_params = {
-            'FIELD_LENGTH': 5,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'geometria_osm',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)

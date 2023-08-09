@@ -135,7 +135,7 @@ class Quadra(QgsProcessingAlgorithm):
 
         # Calculadora de campo_PT_INICIO
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'PontoInicio',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 1,  # Integer (32 bit)
@@ -169,7 +169,7 @@ class Quadra(QgsProcessingAlgorithm):
 
         # Calculadora de campo PT_INICIO2
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'PontoInicio',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 0,  # Decimal (double)

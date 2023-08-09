@@ -160,7 +160,7 @@ class Policia(QgsProcessingAlgorithm):
 
         # Calculadora de campo
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'osm_id',
             'FIELD_PRECISION': 0,
             'FIELD_TYPE': 2,  # Text (string)

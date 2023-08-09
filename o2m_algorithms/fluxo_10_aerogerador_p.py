@@ -82,7 +82,7 @@ class Aerogerador(QgsProcessingAlgorithm):
 
         # Calculadora de campo
         alg_params = {
-            'FIELD_LENGTH': 3,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'PontoInicio',
             'FIELD_PRECISION': 0,
             'FIELD_TYPE': 1,  # Integer (32 bit)
@@ -99,7 +99,7 @@ class Aerogerador(QgsProcessingAlgorithm):
 
         # Calculadora de campo (2)
         alg_params = {
-            'FIELD_LENGTH': 3,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'alturaTorreAer',
             'FIELD_PRECISION': 0,
             'FIELD_TYPE': 1,  # Integer (32 bit)

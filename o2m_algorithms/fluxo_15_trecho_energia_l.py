@@ -145,7 +145,7 @@ class PowerLine(QgsProcessingAlgorithm):
 
         # Calculadora de campo_1
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'Area_TOT',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 0,  # Decimal (double)
@@ -174,7 +174,7 @@ class PowerLine(QgsProcessingAlgorithm):
 
         # Calculadora de campo_2
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'Area_DIF',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 0,  # Decimal (double)
@@ -191,7 +191,7 @@ class PowerLine(QgsProcessingAlgorithm):
 
         # Calculadora de campo_3
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'percentualExtraBaseRef',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 0,  # Decimal (double)
@@ -251,7 +251,7 @@ class PowerLine(QgsProcessingAlgorithm):
 
         # Calculadora de campo (1)
         alg_params = {
-            'FIELD_LENGTH': 5,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'PontoInicio',
             'FIELD_PRECISION': 0,
             'FIELD_TYPE': 1,  # Integer (32 bit)
@@ -268,7 +268,7 @@ class PowerLine(QgsProcessingAlgorithm):
 
         # Calculadora de campo (2)
         alg_params = {
-            'FIELD_LENGTH': 25,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'description',
             'FIELD_PRECISION': 0,
             'FIELD_TYPE': 2,  # Text (string)

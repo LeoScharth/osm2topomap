@@ -126,7 +126,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Calculadora de campo
         alg_params = {
-            'FIELD_LENGTH': 5,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'geometria_osm',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
@@ -170,7 +170,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Calculadora de campo
         alg_params = {
-            'FIELD_LENGTH': 5,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'nome_osm',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
@@ -240,7 +240,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Calculadora de campo
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'tipoelemnat2',
             'FIELD_PRECISION': 0,
             'FIELD_TYPE': 2,  # Text (string)
@@ -367,7 +367,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Calculadora de campo OG
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'tipoelemnat',
             'FIELD_PRECISION': 0,
             'FIELD_TYPE': 2,  # Text (string)
@@ -577,7 +577,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Calculadora de campo_PT_INICIO(2)
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'PontoInicio',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 1,  # Integer (32 bit)
@@ -594,7 +594,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Calculadora de campo Pico2
         alg_params = {
-            'FIELD_LENGTH': 5,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'nome_osm',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
@@ -611,7 +611,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Calculadora de campo Pico3
         alg_params = {
-            'FIELD_LENGTH': 5,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'geometria_osm',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
@@ -749,7 +749,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Calculadora de campo PolPraia (1)
         alg_params = {
-            'FIELD_LENGTH': 5,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'nome_osm',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
@@ -783,7 +783,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Calculadora de campo PolPraia (2)
         alg_params = {
-            'FIELD_LENGTH': 5,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'geometria_osm',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
@@ -812,7 +812,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Calculadora de campo Pico3.5
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'tipoelemnat',
             'FIELD_PRECISION': 0,
             'FIELD_TYPE': 2,  # Text (string)
@@ -841,7 +841,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Calculadora de campo Praia2
         alg_params = {
-            'FIELD_LENGTH': 5,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'nome_osm',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
@@ -871,7 +871,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Calculadora de campo PolPraia(4)
         alg_params = {
-            'FIELD_LENGTH': 5,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'nome_osm',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
@@ -913,7 +913,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Calculadora de campo Praia3
         alg_params = {
-            'FIELD_LENGTH': 5,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'geometria_osm',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
@@ -930,7 +930,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Calculadora de campo PolPraia (5)
         alg_params = {
-            'FIELD_LENGTH': 5,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'geometria_osm',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
@@ -964,7 +964,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Calculadora de campo Praia4
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'tipoelemnat',
             'FIELD_PRECISION': 0,
             'FIELD_TYPE': 2,  # Text (string)
@@ -981,7 +981,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Calculadora de campo Add(1)
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'osm_id',
             'FIELD_PRECISION': 0,
             'FIELD_TYPE': 2,  # Text (string)
@@ -1044,7 +1044,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Calculadora de campo PolPraia (7)
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'osm_id',
             'FIELD_PRECISION': 0,
             'FIELD_TYPE': 2,  # Text (string)
@@ -1061,7 +1061,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Calculadora de campo NOME_OSM (1)
         alg_params = {
-            'FIELD_LENGTH': 5,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'nome_osm',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
@@ -1095,7 +1095,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Calculadora de campo Add(3)
         alg_params = {
-            'FIELD_LENGTH': 5,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'nome_osm',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
@@ -1112,7 +1112,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Calculadora de campo Add(4)
         alg_params = {
-            'FIELD_LENGTH': 5,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'geometria_osm',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
@@ -1129,7 +1129,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Calculadora de campo GEOM_OSM (1)
         alg_params = {
-            'FIELD_LENGTH': 5,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'geometria_osm',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
@@ -1146,7 +1146,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Calculadora de campo NEW
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'tipoelemnat',
             'FIELD_PRECISION': 0,
             'FIELD_TYPE': 2,  # Text (string)
@@ -1180,7 +1180,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Calculadora de campo Add(6)
         alg_params = {
-            'FIELD_LENGTH': 0,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'tipoelemnat',
             'FIELD_PRECISION': 0,
             'FIELD_TYPE': 1,  # Integer (32 bit)
@@ -1250,7 +1250,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Mapear Atributos (1)
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'tipoelemnat',
             'FIELD_PRECISION': 0,
             'FIELD_TYPE': 2,  # Text (string)
@@ -1267,7 +1267,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Mapear Atributos (2)
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'tipoelemnat',
             'FIELD_PRECISION': 0,
             'FIELD_TYPE': 2,  # Text (string)
@@ -1296,7 +1296,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Mapear Atributos (7)
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'tipoelemnat',
             'FIELD_PRECISION': 0,
             'FIELD_TYPE': 2,  # Text (string)
@@ -1313,7 +1313,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # 'Mapear Atributos (8)
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'tipoelemnat',
             'FIELD_PRECISION': 0,
             'FIELD_TYPE': 2,  # Text (string)
@@ -1330,7 +1330,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Mapear Atributos (3)
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'tipoelemnat',
             'FIELD_PRECISION': 0,
             'FIELD_TYPE': 2,  # Text (string)
@@ -1347,7 +1347,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Mapear Atributos (4)
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'tipoelemnat',
             'FIELD_PRECISION': 0,
             'FIELD_TYPE': 2,  # Text (string)
@@ -1364,7 +1364,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # 'Mapear Atributos (9)
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'tipoelemnat',
             'FIELD_PRECISION': 0,
             'FIELD_TYPE': 2,  # Text (string)
@@ -1382,7 +1382,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Mapear Atributos (5)
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'tipoelemnat',
             'FIELD_PRECISION': 0,
             'FIELD_TYPE': 2,  # Text (string)
@@ -1399,7 +1399,7 @@ class RelevoFisiograficoNatural(QgsProcessingAlgorithm):
 
         # Mapear Atributos (6)
         alg_params = {
-            'FIELD_LENGTH': 10,
+            'FIELD_LENGTH': 255,
             'FIELD_NAME': 'tipoelemnat',
             'FIELD_PRECISION': 0,
             'FIELD_TYPE': 2,  # Text (string)
