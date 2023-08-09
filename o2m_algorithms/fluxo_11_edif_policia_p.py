@@ -189,7 +189,7 @@ class Policia(QgsProcessingAlgorithm):
 
         # Editar campos
         alg_params = {
-            'FIELDS_MAPPING': [{'expression': '"name"','length': 255,'name': 'nome','precision': 0,'type': 10},{'expression': '"osm_id"','length': 10,'name': 'osm_id','precision': 0,'type': 10},{'expression': '"name"','length': 255,'name': 'nome_no_osm','precision': 0,'type': 10},{'expression': "'Sim'",'length': 5,'name': 'geometria_osm','precision': 0,'type': 10},{'expression': 'if("name" IS NOT NULL,\'Sim\',\'Não\')','length': 5,'name': 'nome_osm','precision': 0,'type': 10}],
+            'FIELDS_MAPPING': [{'expression': '"name"','length': 255,'name': 'nome','precision': 0,'type': 10},{'expression': '"osm_id"','length': 255,'name': 'osm_id','precision': 0,'type': 10},{'expression': '"name"','length': 255,'name': 'nome_no_osm','precision': 0,'type': 10},{'expression': "'Sim'",'length': 5,'name': 'geometria_osm','precision': 0,'type': 10},{'expression': 'if("name" IS NOT NULL,\'Sim\',\'Não\')','length': 5,'name': 'nome_osm','precision': 0,'type': 10}],
             'INPUT': outputs['MesclarCamadasVetoriais']['OUTPUT'],
             'OUTPUT': parameters['Policia_p']
         }

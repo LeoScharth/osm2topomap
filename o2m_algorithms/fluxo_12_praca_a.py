@@ -1,6 +1,6 @@
 """
 Model exported as python.
-Name : Praça
+Name : Praca
 Group : IBGE
 With QGIS : 33200
 """
@@ -22,7 +22,7 @@ class Praca(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterString('EntrecomoValorOSM', 'Entre com o Valor OSM', multiLine=False, defaultValue='park'))
         self.addParameter(QgsProcessingParameterVectorLayer('definaareadeinteresse2', 'Defina a área de interesse', types=[QgsProcessing.TypeVectorPolygon], defaultValue=None))
         self.addParameter(QgsProcessingParameterFeatureSink('Geom', 'geom', type=QgsProcessing.TypeVectorAnyGeometry, createByDefault=True, supportsAppend=True, defaultValue=None))
-        self.addParameter(QgsProcessingParameterFeatureSink('Praa_a', 'praça_A', type=QgsProcessing.TypeVectorAnyGeometry, createByDefault=True, supportsAppend=True, defaultValue=None))
+        self.addParameter(QgsProcessingParameterFeatureSink('Praa_a', 'praca_A', type=QgsProcessing.TypeVectorAnyGeometry, createByDefault=True, supportsAppend=True, defaultValue=None))
 
     def processAlgorithm(self, parameters, context, model_feedback):
         # Use a multi-step feedback, so that individual child algorithm progress reports are adjusted for the
@@ -107,7 +107,7 @@ class Praca(QgsProcessingAlgorithm):
 
         # Extrair por expressão
         alg_params = {
-            'EXPRESSION': '"name" LIKE \'%Praça%\' OR "name" LIKE \'%Praca%\' OR "name" LIKE \'%praça%\' OR "name" LIKE \'%praca%\' OR "name" LIKE \'%PRAÇA%\' OR "name" LIKE \'%PRACA%\' OR "name" LIKE \'%Pracinha%\' OR "name" LIKE \'%pracinha%\' OR "name" LIKE \'%Largo%\' OR "name" LIKE \'%largo%\' OR "name" LIKE \'%LARGO%\' OR "name" LIKE \'%Parquinho%\' OR "name" LIKE \'%parquinho%\' OR "name" LIKE \'%PARQUINHO%\'',
+            'EXPRESSION': '"name" LIKE \'%Praca%\' OR "name" LIKE \'%Praca%\' OR "name" LIKE \'%praca%\' OR "name" LIKE \'%praca%\' OR "name" LIKE \'%PRAcA%\' OR "name" LIKE \'%PRACA%\' OR "name" LIKE \'%Pracinha%\' OR "name" LIKE \'%pracinha%\' OR "name" LIKE \'%Largo%\' OR "name" LIKE \'%largo%\' OR "name" LIKE \'%LARGO%\' OR "name" LIKE \'%Parquinho%\' OR "name" LIKE \'%parquinho%\' OR "name" LIKE \'%PARQUINHO%\'',
             'INPUT': outputs['MultipartesParaPartesSimples']['OUTPUT'],
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
@@ -128,10 +128,10 @@ class Praca(QgsProcessingAlgorithm):
         return results
 
     def name(self):
-        return 'Praça'
+        return 'Praca'
 
     def displayName(self):
-        return 'Praça'
+        return 'Praca'
 
     def group(self):
         return 'IBGE'
@@ -140,4 +140,4 @@ class Praca(QgsProcessingAlgorithm):
         return 'IBGE'
 
     def createInstance(self):
-        return Praa()
+        return Praca()
