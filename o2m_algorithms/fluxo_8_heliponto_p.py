@@ -2,7 +2,7 @@
 Model exported as python.
 Name : Heliponto
 Group : IBGE
-With QGIS : 33200
+With QGIS : 33201
 """
 
 from qgis.core import QgsProcessing
@@ -31,20 +31,6 @@ class Heliponto(QgsProcessingAlgorithm):
         results = {}
         outputs = {}
 
-        # Consulta por TAGs do OSM
-        alg_params = {
-            'EXTENT': parameters['definaareadeinteresse2'],
-            'KEY': parameters['EntrecomaChaveOSM'],
-            'SERVER': 'https://lz4.overpass-api.de/api/interpreter',
-            'TIMEOUT': 25,
-            'VALUE': parameters['EntrecomoValorOSM']
-        }
-        outputs['ConsultaPorTagsDoOsm'] = processing.run('quickosm:buildqueryextent', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(1)
-        if feedback.isCanceled():
-            return {}
-
         # Buffer (2)
         alg_params = {
             'DISSOLVE': False,
@@ -58,6 +44,20 @@ class Heliponto(QgsProcessingAlgorithm):
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['Buffer2'] = processing.run('native:buffer', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(1)
+        if feedback.isCanceled():
+            return {}
+
+        # Consulta por TAGs do OSM
+        alg_params = {
+            'EXTENT': parameters['definaareadeinteresse2'],
+            'KEY': parameters['EntrecomaChaveOSM'],
+            'SERVER': 'https://lz4.overpass-api.de/api/interpreter',
+            'TIMEOUT': 25,
+            'VALUE': parameters['EntrecomoValorOSM']
+        }
+        outputs['ConsultaPorTagsDoOsm'] = processing.run('quickosm:buildqueryextent', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(2)
         if feedback.isCanceled():
@@ -110,14 +110,14 @@ class Heliponto(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
-        # Extrair por localização
+        # Extrair por localização_1
         alg_params = {
             'INPUT': outputs['Recortar2']['OUTPUT'],
             'INTERSECT': outputs['Buffer2']['OUTPUT'],
-            'PREDICATE': 2,  # disjoint
+            'PREDICATE': [2],  # disjoint
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
-        outputs['ExtrairPorLocalizao'] = processing.run('native:extractbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['ExtrairPorLocalizao_1'] = processing.run('native:extractbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(7)
         if feedback.isCanceled():
@@ -135,6 +135,19 @@ class Heliponto(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
+        # Extrair por localização_2
+        alg_params = {
+            'INPUT': outputs['Recortar']['OUTPUT'],
+            'INTERSECT': outputs['Buffer2']['OUTPUT'],
+            'PREDICATE': [2],  # disjoint
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['ExtrairPorLocalizao_2'] = processing.run('native:extractbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(9)
+        if feedback.isCanceled():
+            return {}
+
         # Buffer
         alg_params = {
             'DISSOLVE': False,
@@ -149,20 +162,19 @@ class Heliponto(QgsProcessingAlgorithm):
         }
         outputs['Buffer'] = processing.run('native:buffer', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(9)
+        feedback.setCurrentStep(10)
         if feedback.isCanceled():
             return {}
 
-        # Extrair por localização
+        # Centroides
         alg_params = {
-            'INPUT': outputs['Recortar']['OUTPUT'],
-            'INTERSECT': outputs['Buffer2']['OUTPUT'],
-            'PREDICATE': 2,  # disjoint
+            'ALL_PARTS': False,
+            'INPUT': outputs['ExtrairPorLocalizao_2']['OUTPUT'],
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
-        outputs['ExtrairPorLocalizao'] = processing.run('native:extractbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['Centroides'] = processing.run('native:centroids', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(10)
+        feedback.setCurrentStep(11)
         if feedback.isCanceled():
             return {}
 
@@ -179,7 +191,23 @@ class Heliponto(QgsProcessingAlgorithm):
         }
         outputs['UnirAtributosPelaPosio'] = processing.run('qgis:joinattributesbylocation', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(11)
+        feedback.setCurrentStep(12)
+        if feedback.isCanceled():
+            return {}
+
+        # Calculadora de campo_5
+        alg_params = {
+            'FIELD_LENGTH': 10,
+            'FIELD_NAME': 'osm_id',
+            'FIELD_PRECISION': 0,
+            'FIELD_TYPE': 2,  # Text (string)
+            'FORMULA': '"osm_way_id"',
+            'INPUT': outputs['Centroides']['OUTPUT'],
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['CalculadoraDeCampo_5'] = processing.run('native:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(13)
         if feedback.isCanceled():
             return {}
 
@@ -196,19 +224,7 @@ class Heliponto(QgsProcessingAlgorithm):
         }
         outputs['CalculadoraDeCampo5'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(12)
-        if feedback.isCanceled():
-            return {}
-
-        # Centroides
-        alg_params = {
-            'ALL_PARTS': False,
-            'INPUT': outputs['ExtrairPorLocalizao']['OUTPUT'],
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['Centroides'] = processing.run('native:centroids', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(13)
+        feedback.setCurrentStep(14)
         if feedback.isCanceled():
             return {}
 
@@ -225,68 +241,49 @@ class Heliponto(QgsProcessingAlgorithm):
         }
         outputs['CalculadoraDeCampo6'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
-        feedback.setCurrentStep(14)
+        feedback.setCurrentStep(15)
         if feedback.isCanceled():
             return {}
 
-        # Calculadora de campo
+        # Calculadora de campo_1
         alg_params = {
-            'FIELD_LENGTH': 255,
+            'FIELD_LENGTH': 10,
             'FIELD_NAME': 'osm_id',
             'FIELD_PRECISION': 0,
             'FIELD_TYPE': 2,  # Text (string)
             'FORMULA': '"osm_way_id"',
             'INPUT': outputs['CalculadoraDeCampo6']['OUTPUT'],
-            'NEW_FIELD': False,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
-        outputs['CalculadoraDeCampo'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(15)
-        if feedback.isCanceled():
-            return {}
-
-        # Calculadora de campo
-        alg_params = {
-            'FIELD_LENGTH': 255,
-            'FIELD_NAME': 'osm_id',
-            'FIELD_PRECISION': 0,
-            'FIELD_TYPE': 2,  # Text (string)
-            'FORMULA': '"osm_way_id"',
-            'INPUT': outputs['Centroides']['OUTPUT'],
-            'NEW_FIELD': False,
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['CalculadoraDeCampo'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['CalculadoraDeCampo_1'] = processing.run('native:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(16)
         if feedback.isCanceled():
             return {}
 
-        # Mesclar camadas vetoriais
-        alg_params = {
-            'CRS': None,
-            'LAYERS': [outputs['CalculadoraDeCampo']['OUTPUT'],outputs['ExtrairPorLocalizao']['OUTPUT']],
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['MesclarCamadasVetoriais'] = processing.run('native:mergevectorlayers', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(17)
-        if feedback.isCanceled():
-            return {}
-
-        # Calculadora de campo
+        # Calculadora de campo_2
         alg_params = {
             'FIELD_LENGTH': 255,
             'FIELD_NAME': 'geometria_osm',
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 2,  # Text (string)
             'FORMULA': "'Não'",
-            'INPUT': outputs['CalculadoraDeCampo']['OUTPUT'],
-            'NEW_FIELD': True,
+            'INPUT': outputs['CalculadoraDeCampo_1']['OUTPUT'],
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
-        outputs['CalculadoraDeCampo'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['CalculadoraDeCampo_2'] = processing.run('native:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(17)
+        if feedback.isCanceled():
+            return {}
+
+        # Mesclar camadas vetoriais_1
+        alg_params = {
+            'CRS': None,
+            'LAYERS': [outputs['CalculadoraDeCampo_5']['OUTPUT'],outputs['ExtrairPorLocalizao_1']['OUTPUT']],
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['MesclarCamadasVetoriais_1'] = processing.run('native:mergevectorlayers', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(18)
         if feedback.isCanceled():
@@ -299,30 +296,13 @@ class Heliponto(QgsProcessingAlgorithm):
             'FIELD_PRECISION': 3,
             'FIELD_TYPE': 1,  # Integer (32 bit)
             'FORMULA': 'strpos(  "other_tags" , (\'"name"=>"\'))+9',
-            'INPUT': outputs['MesclarCamadasVetoriais']['OUTPUT'],
+            'INPUT': outputs['MesclarCamadasVetoriais_1']['OUTPUT'],
             'NEW_FIELD': True,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['CalculadoraDeCampo_pt_inicio2'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(19)
-        if feedback.isCanceled():
-            return {}
-
-        # Calculadora de campo
-        alg_params = {
-            'FIELD_LENGTH': 255,
-            'FIELD_NAME': 'nome_osm',
-            'FIELD_PRECISION': 3,
-            'FIELD_TYPE': 2,  # Text (string)
-            'FORMULA': 'if( "nome_no_osm" IS NOT NULL,  \'Sim\' ,\'Não\')',
-            'INPUT': outputs['CalculadoraDeCampo']['OUTPUT'],
-            'NEW_FIELD': True,
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        outputs['CalculadoraDeCampo'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-
-        feedback.setCurrentStep(20)
         if feedback.isCanceled():
             return {}
 
@@ -338,6 +318,22 @@ class Heliponto(QgsProcessingAlgorithm):
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         outputs['CalculadoraDeCampo_nome2'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+
+        feedback.setCurrentStep(20)
+        if feedback.isCanceled():
+            return {}
+
+        # Calculadora de campo_3
+        alg_params = {
+            'FIELD_LENGTH': 255,
+            'FIELD_NAME': 'nome_osm',
+            'FIELD_PRECISION': 3,
+            'FIELD_TYPE': 2,  # Text (string)
+            'FORMULA': 'if( "nome_no_osm" IS NOT NULL,  \'Sim\' ,\'Não\')',
+            'INPUT': outputs['CalculadoraDeCampo_2']['OUTPUT'],
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        outputs['CalculadoraDeCampo_3'] = processing.run('native:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(21)
         if feedback.isCanceled():
@@ -425,7 +421,7 @@ class Heliponto(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
-        # Calculadora de campo
+        # Calculadora de campo_4
         alg_params = {
             'FIELD_LENGTH': 255,
             'FIELD_NAME': 'nome',
@@ -433,22 +429,21 @@ class Heliponto(QgsProcessingAlgorithm):
             'FIELD_TYPE': 2,  # Text (string)
             'FORMULA': '"nome_no_osm"',
             'INPUT': outputs['CalculadoraDeCampoGeom_osm1']['OUTPUT'],
-            'NEW_FIELD': False,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
-        outputs['CalculadoraDeCampo'] = processing.run('qgis:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['CalculadoraDeCampo_4'] = processing.run('native:fieldcalculator', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(28)
         if feedback.isCanceled():
             return {}
 
-        # Mesclar camadas vetoriais
+        # Mesclar camadas vetoriais_2
         alg_params = {
             'CRS': 'ProjectCrs',
-            'LAYERS': [outputs['CalculadoraDeCampo']['OUTPUT'],outputs['CalculadoraDeCampo']['OUTPUT']],
+            'LAYERS': [outputs['CalculadoraDeCampo_3']['OUTPUT'],outputs['CalculadoraDeCampo_4']['OUTPUT']],
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
-        outputs['MesclarCamadasVetoriais'] = processing.run('native:mergevectorlayers', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
+        outputs['MesclarCamadasVetoriais_2'] = processing.run('native:mergevectorlayers', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
 
         feedback.setCurrentStep(29)
         if feedback.isCanceled():
@@ -456,8 +451,8 @@ class Heliponto(QgsProcessingAlgorithm):
 
         # Editar campos
         alg_params = {
-            'FIELDS_MAPPING': [{'expression': '"id"','length': -1,'name': 'id','precision': 0,'type': 2},{'expression': '"nome"','length': 150,'name': 'nome','precision': -1,'type': 10},{'expression': '"geometriaaproximada"','length': -1,'name': 'geometriaaproximada','precision': 0,'type': 2},{'expression': "'Heliponto'",'length': 15,'name': 'tipopista','precision': 0,'type': 10},{'expression': '"revestimento"','length': -1,'name': 'revestimento','precision': 0,'type': 2},{'expression': '"usopista"','length': -1,'name': 'usopista','precision': 0,'type': 2},{'expression': '"homologacao"','length': -1,'name': 'homologacao','precision': 0,'type': 2},{'expression': '"operacional"','length': -1,'name': 'operacional','precision': 0,'type': 2},{'expression': '"situacaofisica"','length': -1,'name': 'situacaofisica','precision': 0,'type': 2},{'expression': '"largura"','length': -1,'name': 'largura','precision': -1,'type': 6},{'expression': '"extensao"','length': -1,'name': 'extensao','precision': -1,'type': 6},{'expression': '"altitude"','length': -1,'name': 'altitude','precision': -1,'type': 6},{'expression': '"tx_comentario_producao"','length': -1,'name': 'tx_comentario_producao','precision': -1,'type': 10},{'expression': '"id_nomebngb"','length': -1,'name': 'id_nomebngb','precision': 0,'type': 2},{'expression': '"id_produtor"','length': -1,'name': 'id_produtor','precision': 0,'type': 2},{'expression': '"id_elementoprodutor"','length': -1,'name': 'id_elementoprodutor','precision': 0,'type': 2},{'expression': '"id_antigo"','length': -1,'name': 'id_antigo','precision': 0,'type': 2},{'expression': '"cd_situacao_do_objeto"','length': 255,'name': 'cd_situacao_do_objeto','precision': -1,'type': 10},{'expression': '"id_usuario"','length': -1,'name': 'id_usuario','precision': 0,'type': 2},{'expression': '"dt_atualizacao"','length': -1,'name': 'dt_atualizacao','precision': -1,'type': 16},{'expression': '"tx_geocodigo_municipio"','length': -1,'name': 'tx_geocodigo_municipio','precision': -1,'type': 10},{'expression': '"id_complexo_aeroportuario"','length': -1,'name': 'id_complexo_aeroportuario','precision': 0,'type': 2},{'expression': '"situacaonome"','length': -1,'name': 'situacaonome','precision': 0,'type': 2},{'expression': '"insumonome"','length': -1,'name': 'insumonome','precision': -1,'type': 10},{'expression': '"situacaoquantoaolimite"','length': -1,'name': 'situacaoquantoaolimite','precision': 0,'type': 2},{'expression': '"observacaong"','length': -1,'name': 'observacaong','precision': -1,'type': 10},{'expression': '"validacaobngb"','length': 1,'name': 'validacaobngb','precision': -1,'type': 10},{'expression': '"compatibilidadeng"','length': -1,'name': 'compatibilidadeng','precision': -1,'type': 10},{'expression': '"osm_id"','length': 0,'name': 'osm_id','precision': 0,'type': 10},{'expression': '"nome_no_osm"','length': 255,'name': 'nome_no_osm','precision': 3,'type': 10},{'expression': '"geometria_osm"','length': 5,'name': 'geometria_osm','precision': 3,'type': 10},{'expression': '"nome_osm"','length': 5,'name': 'nome_osm','precision': 3,'type': 10}],
-            'INPUT': outputs['MesclarCamadasVetoriais']['OUTPUT'],
+            'FIELDS_MAPPING': [{'expression': '"id"','length': -1,'name': 'id','precision': 0,'type': 2},{'expression': '"nome"','length': 150,'name': 'nome','precision': -1,'type': 10},{'expression': '"geometriaaproximada"','length': -1,'name': 'geometriaaproximada','precision': 0,'type': 2},{'expression': "'Heliponto'",'length': 15,'name': 'tipopista','precision': 0,'type': 10},{'expression': '"revestimento"','length': -1,'name': 'revestimento','precision': 0,'type': 2},{'expression': '"usopista"','length': -1,'name': 'usopista','precision': 0,'type': 2},{'expression': '"homologacao"','length': -1,'name': 'homologacao','precision': 0,'type': 2},{'expression': '"operacional"','length': -1,'name': 'operacional','precision': 0,'type': 2},{'expression': '"situacaofisica"','length': -1,'name': 'situacaofisica','precision': 0,'type': 2},{'expression': '"largura"','length': -1,'name': 'largura','precision': -1,'type': 6},{'expression': '"extensao"','length': -1,'name': 'extensao','precision': -1,'type': 6},{'expression': '"altitude"','length': -1,'name': 'altitude','precision': -1,'type': 6},{'expression': '"tx_comentario_producao"','length': -1,'name': 'tx_comentario_producao','precision': -1,'type': 10},{'expression': '"id_nomebngb"','length': -1,'name': 'id_nomebngb','precision': 0,'type': 2},{'expression': '"id_produtor"','length': -1,'name': 'id_produtor','precision': 0,'type': 2},{'expression': '"id_elementoprodutor"','length': -1,'name': 'id_elementoprodutor','precision': 0,'type': 2},{'expression': '"id_antigo"','length': -1,'name': 'id_antigo','precision': 0,'type': 2},{'expression': '"cd_situacao_do_objeto"','length': 2,'name': 'cd_situacao_do_objeto','precision': -1,'type': 10},{'expression': '"id_usuario"','length': -1,'name': 'id_usuario','precision': 0,'type': 2},{'expression': '"dt_atualizacao"','length': -1,'name': 'dt_atualizacao','precision': -1,'type': 16},{'expression': '"tx_geocodigo_municipio"','length': -1,'name': 'tx_geocodigo_municipio','precision': -1,'type': 10},{'expression': '"id_complexo_aeroportuario"','length': -1,'name': 'id_complexo_aeroportuario','precision': 0,'type': 2},{'expression': '"situacaonome"','length': -1,'name': 'situacaonome','precision': 0,'type': 2},{'expression': '"insumonome"','length': -1,'name': 'insumonome','precision': -1,'type': 10},{'expression': '"situacaoquantoaolimite"','length': -1,'name': 'situacaoquantoaolimite','precision': 0,'type': 2},{'expression': '"observacaong"','length': -1,'name': 'observacaong','precision': -1,'type': 10},{'expression': '"validacaobngb"','length': 1,'name': 'validacaobngb','precision': -1,'type': 10},{'expression': '"compatibilidadeng"','length': -1,'name': 'compatibilidadeng','precision': -1,'type': 10},{'expression': '"osm_id"','length': 255,'name': 'osm_id','precision': 0,'type': 10},{'expression': '"nome_no_osm"','length': 255,'name': 'nome_no_osm','precision': 3,'type': 10},{'expression': '"geometria_osm"','length': 5,'name': 'geometria_osm','precision': 3,'type': 10},{'expression': '"nome_osm"','length': 5,'name': 'nome_osm','precision': 3,'type': 10}],
+            'INPUT': outputs['MesclarCamadasVetoriais_2']['OUTPUT'],
             'OUTPUT': parameters['Heliponto_p']
         }
         outputs['EditarCampos'] = processing.run('qgis:refactorfields', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
