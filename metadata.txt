@@ -6,7 +6,7 @@
 name=osm2topomap
 qgisMinimumVersion=3.32
 description=A plugin intended to intermediate the process of using OSM data for official (authoritative) Topographc Maps, or rather, databases
-version=0.1
+version=0.9
 author=Leonardo Scharth; Kauê Vestena; Silvana Camboim
 email=scharth.leo@gmail.com 
 
